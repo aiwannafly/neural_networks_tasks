@@ -4,4 +4,5 @@ CMakeLists.txt
 thoughts
 .idea
 .vscode
+.gitignore
 
