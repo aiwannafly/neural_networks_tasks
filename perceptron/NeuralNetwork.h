@@ -16,6 +16,8 @@ namespace perceptron {
 
         Eigen::VectorXf calculate(const Eigen::VectorXf &input);
 
+        float calculate_err(const Eigen::VectorXf &input, const Eigen::VectorXf &expected_output);
+
         /*
          * calculates the gradient of a cost function, then uses it for
          * changing weights to reduce difference between expected_output

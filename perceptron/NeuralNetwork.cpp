@@ -43,6 +43,13 @@ namespace perceptron {
         return current;
     }
 
+    float NeuralNetwork::calculate_err(const Eigen::VectorXf &input, const Eigen::VectorXf &expected_output) {
+        Eigen::VectorXf output = calculate(input);
+        auto err_vector = expected_output - output;
+        float sum_err = calc_sum_err(err_vector);
+        return sum_err;
+    }
+
     std::vector<Eigen::VectorXf> *NeuralNetwork::calculate_and_get_interim_results(const Eigen::VectorXf &input) {
         auto results = new std::vector<Eigen::VectorXf>();
         Eigen::VectorXf current = input;
@@ -58,8 +65,8 @@ namespace perceptron {
         std::vector<Eigen::VectorXf> *interim_outputs = calculate_and_get_interim_results(input);
         Eigen::VectorXf output = interim_outputs->back();
         auto err_vector = expected_output - output;
-        float sum_err = calc_sum_err(err_vector);
-        std::cout << "Err: " << sum_err << std::endl;
+        // float sum_err = calc_sum_err(err_vector);
+        // std::cout << "Err: " << sum_err << std::endl;
         // from the last hidden layer to the input layer
         Eigen::VectorXf delta_prev;
         Eigen::VectorXf delta_curr;

@@ -5,4 +5,11 @@ thoughts
 .idea
 .vscode
 .gitignore
+OpenXLSX
+libxl-4.1.1
+perceptron
+*.csv
+err_data
+csv.h
+
 
