@@ -1,11 +1,15 @@
 #include <cassert>
 #include <cstdlib>
 #include <iostream>
-#include <sstream>
 #include <vector>
+#include <config4cpp/Configuration.h>
 
-#include "NeuralNetwork.h"
+#include "NeuralNetworkImpl.h"
 #include "csv.h"
+
+#define TRAINING_PERCENTAGE (0.7)
+#define FAIL (-1)
+#define SUCCESS (0)
 
 namespace {
     bool extract_int(const char *buf, int *num) {
@@ -32,13 +36,13 @@ namespace {
         return true;
     }
 
-    std::vector<std::string> split(std::string s, std::string delimiter) {
+    std::vector<std::string> split(const std::string &s, const std::string &delimiter) {
         size_t pos_start = 0, pos_end, delim_len = delimiter.length();
         std::string token;
         std::vector<std::string> res;
 
         while ((pos_end = s.find(delimiter, pos_start)) != std::string::npos) {
-            token = s.substr (pos_start, pos_end - pos_start);
+            token = s.substr(pos_start, pos_end - pos_start);
             pos_start = pos_end + delim_len;
             res.push_back (token);
         }
@@ -62,14 +66,14 @@ int main(int argc, char *argv[]) {
     const std::string usage_guide = "usage: ./prog <data.csv> <epochs_count> <optional: learning_rate>";
     if (argc < 1 + 2 || argc > 1 + 3) {
         std::cerr << usage_guide << std::endl;
-        return -1;
+        return FAIL;
     }
     int epochs_count;
     bool extracted = extract_int(argv[2], &epochs_count);
     if (!extracted) {
         std::cerr << "error while parsing epochs_count" << std::endl;
         std::cerr << usage_guide << std::endl;
-        return -1;
+        return FAIL;
     }
     float learning_rate = 0.001;
     if (argc > 1 + 2) {
@@ -77,19 +81,20 @@ int main(int argc, char *argv[]) {
         if (!extracted) {
             std::cerr << "error while parsing learning_rate" << std::endl;
             std::cerr << usage_guide << std::endl;
-            return -1;
+            return FAIL;
         }
     }
     io::CSVReader<1> in(argv[1]);
     char *col_names_raw = in.next_line();
     std::string delimiter = ",";
     std::vector<std::string> cols = split(col_names_raw, delimiter);    
-    int cols_count = cols.size();
+    size_t cols_count = cols.size();
     char *s;
     std::vector<Eigen::VectorXf> samples;
     std::vector<float> targets;
     float min_target = 10e10;
     float max_target = -10e10;
+    // RMSE Rscore
     while((s = in.next_line()) != nullptr) {
         std::vector<float> nums = to_float_arr(split(s, delimiter));
         Eigen::VectorXf sample = Eigen::VectorXf(cols_count - 2);
@@ -107,11 +112,27 @@ int main(int argc, char *argv[]) {
         }
     }
     std::cout << "samples count: " << samples.size() << std::endl;
-    size_t training_count = (size_t) (samples.size() * 0.7);
-    size_t test_count = samples.size() - training_count;
+    auto training_count = (size_t) (samples.size() * TRAINING_PERCENTAGE);
     if (training_count == 0) {
         std::cerr << "too little samples" << std::endl;
-        return -2;
+        return FAIL;
+    }
+    std::vector<Eigen::VectorXf> training_samples;
+    std::vector<Eigen::VectorXf> training_outputs;
+    std::vector<Eigen::VectorXf> test_samples;
+    std::vector<Eigen::VectorXf> test_outputs;
+    for (int i = 0; i < samples.size(); i++) {
+        float target = targets.at(i);
+        target = (target - min_target) / (max_target - min_target); // normalize
+        Eigen::VectorXf expected(1);
+        expected(0) = target;
+        if (i < training_count) {
+            training_samples.push_back(samples.at(i));
+            training_outputs.push_back(expected);
+        } else {
+            test_samples.push_back(samples.at(i));
+            test_outputs.push_back(expected);
+        }
     }
     size_t layers_count = 1 + 2 + 1;
     std::vector<size_t> layer_sizes;
@@ -129,30 +150,16 @@ int main(int argc, char *argv[]) {
             layer_sizes.push_back(new_size);
         }
     }
-    layer_sizes[1] = 8;
-    layer_sizes[2] = 8;
-    auto nn = new perceptron::NeuralNetwork(layer_sizes);
+    perceptron::NeuralNetwork *nn = new perceptron::NeuralNetworkImpl(layer_sizes);
     nn->set_learning_rate(learning_rate);
-    int log_frequency = 1;
+    int log_frequency = 100;
     FILE *output = fopen("err_data", "w");
+    // precision, recall, roc auc, f1, accuracy
+    // explain these metrics
+    // why we need activation function
     for (int e = 0; e < epochs_count; e++) {
-        for (int i = 0; i < training_count; i++) {
-            float target = targets.at(i);
-            target = (target - min_target) / (max_target - min_target); // normalize
-            Eigen::VectorXf expected(1);
-            expected(0) = target;
-            nn->train(samples.at(i), expected);
-        }
-        float sum_err = 0.0;
-        for (int i = training_count; i < samples.size(); i++) {
-            float target = targets.at(i);
-            target = (target - min_target) / (max_target - min_target); // normalize
-            Eigen::VectorXf expected(1);
-            expected(0) = target;
-            float err = nn->calculate_err(samples.at(i), expected);
-            sum_err += err;
-        }
-        sum_err /= test_count;
+        nn->train(training_samples, training_outputs);
+        float sum_err = nn->get_err(test_samples, test_outputs);
         if (e % log_frequency == 0) {
             fprintf(output, "%f ", sum_err);
             std::cout << "Epoch " << e << " : err = " << sum_err << std::endl;
@@ -160,5 +167,5 @@ int main(int argc, char *argv[]) {
     }
     fclose(output);
     delete nn;
-    return 0;
+    return SUCCESS;
 }

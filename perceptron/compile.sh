@@ -1,3 +1,3 @@
 #!/bin/bash
-clang++ -Wall -pedantic -fsanitize=address main.cpp NeuralNetwork.cpp Layer.cpp -o perceptron
+clang++ -Wall -pedantic -fsanitize=address main.cpp NeuralNetworkImpl.cpp Layer.cpp -o perceptron
 

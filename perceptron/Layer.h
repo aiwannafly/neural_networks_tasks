@@ -20,8 +20,6 @@ namespace perceptron {
         // returns sigma(W * input + bias)
         Eigen::VectorXf calculate(const Eigen::VectorXf& input);
 
-        // returns sigma'(W * input + bias)
-        Eigen::VectorXf calculate_deriv(const Eigen::VectorXf& input);
     private:
         size_t prev_layer_size;
         size_t current_layer_size;

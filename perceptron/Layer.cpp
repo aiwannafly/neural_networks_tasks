@@ -28,16 +28,7 @@ namespace perceptron {
         for (int i = 0; i < sum.size(); i++) {
             sum(i) = sigmoid(sum(i));
         }
-        return sum;
-    }
-
-    Eigen::VectorXf Layer::calculate_deriv(const Eigen::VectorXf& input) {
-        Eigen::VectorXf sum = *weights * input + *biases;
-        for (int i = 0; i < sum.size(); i++) {
-            // sigma'(x) = sigma(x)(1 - sigma(x))
-            sum(i) = sigmoid(sum(i));
-            sum(i) *= (1 - sum(i));
-        }
+        // with use of vector op
         return sum;
     }
 
