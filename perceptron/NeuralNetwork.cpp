@@ -84,8 +84,8 @@ namespace perceptron {
             Eigen::VectorXf *biases = layer->get_biases();
             if (layer_id == (int) layers->size() - 1) {
                 for (int j = 0; j < current_layer_size; j++) {
-                    delta_curr(j) = err_vector(j) * sigmoid_deriv(j);
-                    float common_err = 2 * learning_rate * delta_curr(j);
+                    delta_curr(j) = 2 * err_vector(j) * sigmoid_deriv(j);
+                    float common_err = learning_rate * delta_curr(j);
                     for (int k = 0; k < prev_layer_size; k++) {
                         float err = common_err * prev_output(k);
                         (*weights)(j, k) += err;
@@ -101,8 +101,8 @@ namespace perceptron {
                 for (int j = 0; j < current_layer_size; j++) {
                     Eigen::VectorXf curr_weights = next_weights->col(j);
                     float scalar_prod = curr_weights.dot(delta_prev);
-                    delta_curr(j) = scalar_prod * sigmoid_deriv(j);
-                    float common_err = 2 * learning_rate * delta_curr(j);
+                    delta_curr(j) = 2 * scalar_prod * sigmoid_deriv(j);
+                    float common_err = learning_rate * delta_curr(j);
                     for (int k = 0; k < prev_layer_size; k++) {
                         float err = common_err * prev_output(k);
                         (*weights)(j, k) += err;

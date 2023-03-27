@@ -11,5 +11,5 @@ perceptron
 *.csv
 err_data
 csv.h
-
+photos
 

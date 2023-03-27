@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
     std::vector<float> targets;
     float min_target = 10e10;
     float max_target = -10e10;
-    while((s = in.next_line()) != nullptr){
+    while((s = in.next_line()) != nullptr) {
         std::vector<float> nums = to_float_arr(split(s, delimiter));
         Eigen::VectorXf sample = Eigen::VectorXf(cols_count - 2);
         for (int i = 1; i < cols_count - 1; i++) {
@@ -108,6 +108,7 @@ int main(int argc, char *argv[]) {
     }
     std::cout << "samples count: " << samples.size() << std::endl;
     size_t training_count = (size_t) (samples.size() * 0.7);
+    size_t test_count = samples.size() - training_count;
     if (training_count == 0) {
         std::cerr << "too little samples" << std::endl;
         return -2;
@@ -128,9 +129,11 @@ int main(int argc, char *argv[]) {
             layer_sizes.push_back(new_size);
         }
     }
+    layer_sizes[1] = 8;
+    layer_sizes[2] = 8;
     auto nn = new perceptron::NeuralNetwork(layer_sizes);
     nn->set_learning_rate(learning_rate);
-    int log_frequency = 10;
+    int log_frequency = 1;
     FILE *output = fopen("err_data", "w");
     for (int e = 0; e < epochs_count; e++) {
         for (int i = 0; i < training_count; i++) {
@@ -149,12 +152,12 @@ int main(int argc, char *argv[]) {
             float err = nn->calculate_err(samples.at(i), expected);
             sum_err += err;
         }
+        sum_err /= test_count;
         if (e % log_frequency == 0) {
             fprintf(output, "%f ", sum_err);
+            std::cout << "Epoch " << e << " : err = " << sum_err << std::endl;
         }
-        std::cout << "Epoch " << e + 1 << " : err = " << sum_err << std::endl;
     }
-    fprintf(output, "\n");
     fclose(output);
     delete nn;
     return 0;
