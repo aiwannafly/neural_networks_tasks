@@ -12,4 +12,6 @@ perceptron
 err_data
 csv.h
 photos
+err*
+configparser
 
