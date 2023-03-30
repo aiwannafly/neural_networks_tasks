@@ -19,6 +19,10 @@ namespace perceptron {
 
         virtual void set_learning_rate(float new_rate) = 0;
 
+        virtual void save_weights(FILE *fp) = 0;
+
+        virtual bool read_weights(FILE *fp) = 0;
+
         virtual ~NeuralNetwork() = default;
     };
 }

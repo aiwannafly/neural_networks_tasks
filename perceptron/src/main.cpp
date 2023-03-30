@@ -4,40 +4,15 @@
 #include <vector>
 #include <configparser.hpp>
 
-#include "NeuralNetworkImpl.h"
+#include "MultilayerPerceptron.h"
 #include "csv.h"
+#include "utils.h"
 
 #define FAIL (-1)
 #define SUCCESS (0)
 
 namespace {
-    bool extract_float(const char *buf, float *num) {
-        if (nullptr == buf || num == nullptr) {
-            return false;
-        }
-        char *end_ptr = nullptr;
-        *num = strtof(buf, &end_ptr);
-        if (buf + strlen(buf) > end_ptr) {
-            return false;
-        }
-        return true;
-    }
-
-    float min(float a, float b) {
-        if (a < b) {
-            return a;
-        }
-        return b;
-    }
-
-    float max(float a, float b) {
-        if (a > b) {
-            return a;
-        }
-        return b;
-    }
-
-    std::vector<std::string> split(const std::string &s, const std::string &delimiter) {
+    std::vector<std::string> Split(const std::string &s, const std::string &delimiter) {
         size_t pos_start = 0, pos_end, delim_len = delimiter.length();
         std::string token;
         std::vector<std::string> res;
@@ -52,11 +27,11 @@ namespace {
         return res;
     }
 
-    std::vector<float> to_float_arr(const std::vector<std::string> &strings) {
+    std::vector<float> MakeFloatArr(const std::vector<std::string> &strings) {
         std::vector<float> res;
         for (const auto &str: strings) {
             float num;
-            assert(extract_float(str.data(), &num));
+            assert(utils::ExtractFloat(str.data(), &num));
             res.push_back(num);
         }
         return res;
@@ -67,34 +42,40 @@ namespace {
         float training_percentage{};
         size_t epochs_count{};
         std::string csv_file_name;
+        std::string log_prefix;
         size_t log_frequency{};
         std::string errs_file_name;
         std::vector<size_t> inner_layer_sizes;
         std::vector<std::string> target_names;
         bool ignore_first_col{};
+        std::string weights_save_file;
+        std::vector<std::string> weights_input_file;
     } Params;
 
-    Params *get_params(const std::string &config_path) {
+    Params *GetParams(const std::string &config_path) {
         auto p = new Params();
-        const std::string section_name = "Section1";
+        const std::string section_name = "Settings";
         ConfigParser parser = ConfigParser(config_path);
         p->learning_rate = parser.aConfig<float>(section_name, "learning_rate");
         p->training_percentage = parser.aConfig<float>(section_name, "training_percentage");
         p->epochs_count = parser.aConfig<size_t>(section_name, "epochs_count");
         p->csv_file_name = parser.aConfig<std::string>(section_name, "csv_file_name");
+        p->log_prefix = parser.aConfig<std::string>(section_name, "log_prefix");
         p->log_frequency = parser.aConfig<size_t>(section_name, "log_frequency");
         p->errs_file_name = parser.aConfig<std::string>(section_name, "log_file_name");
         p->inner_layer_sizes = parser.aConfigVec<size_t>(section_name, "inner_layer_sizes");
         p->target_names = parser.aConfigVec<std::string>(section_name, "targets");
         p->ignore_first_col = parser.aConfig<bool>(section_name, "ignore_first_col");
+        p->weights_save_file = parser.aConfig<std::string>(section_name, "weights_save_file");
+        p->weights_input_file = parser.aConfigVec<std::string>(section_name, "weights_input_file");
         return p;
     }
 
-    std::vector<perceptron::Example> extract_data_vectors(Params *p) {
+    std::vector<perceptron::Example> ParseCSV(Params *p) {
         io::CSVReader<1> in(p->csv_file_name);
         char *col_names_raw = in.next_line();
         std::string delimiter = ",";
-        std::vector<std::string> cols = split(col_names_raw, delimiter);
+        std::vector<std::string> cols = Split(col_names_raw, delimiter);
         std::vector<size_t> target_ids(p->target_names.size());
         size_t target_len = 0;
         for (size_t i = 0; i < cols.size(); i++) {
@@ -118,7 +99,7 @@ namespace {
         std::vector<float> max_targets(target_len);
         char *s;
         while((s = in.next_line()) != nullptr) {
-            std::vector<float> nums = to_float_arr(split(s, delimiter));
+            std::vector<float> nums = MakeFloatArr(Split(s, delimiter));
             perceptron::Example example;
             example.sample = Eigen::VectorXf(sample_len);
             example.target = Eigen::VectorXf(target_len);
@@ -129,8 +110,8 @@ namespace {
                     min_targets[i] = target;
                     max_targets[i] = target;
                 } else {
-                    min_targets[i] = min(target, min_targets[i]);
-                    max_targets[i] = max(target, max_targets[i]);
+                    min_targets[i] = utils::Min(target, min_targets[i]);
+                    max_targets[i] = utils::Max(target, max_targets[i]);
                 }
             }
             int current = 0;
@@ -165,12 +146,19 @@ int main(int argc, char *argv[]) {
         return FAIL;
     }
     const std::string config_path = argv[1];
-    Params *p = get_params(config_path);
-    std::vector<perceptron::Example> examples = extract_data_vectors(p);
-    std::cout << "samples count: " << examples.size() << std::endl;
+    Params *p = GetParams(config_path);
+    std::vector<perceptron::Example> examples;
+    try {
+        examples = ParseCSV(p);
+    } catch (const std::exception &e) {
+        std::cerr << p->log_prefix << " Error while parsing " << p->csv_file_name << " : " << e.what() << std::endl;
+        delete p;
+        return FAIL;
+    }
+    std::cout << p->log_prefix << " Samples count: " << examples.size() << std::endl;
     auto training_count = (size_t) (examples.size() * p->training_percentage);
     if (training_count == 0) {
-        std::cerr << "too little samples" << std::endl;
+        std::cerr << p->log_prefix << " Too little samples" << std::endl;
         delete p;
         return FAIL;
     }
@@ -188,25 +176,52 @@ int main(int argc, char *argv[]) {
     std::vector<size_t> layer_sizes;
     layer_sizes.push_back(input_size);
     for (auto inner_size: p->inner_layer_sizes) {
-        std::cout << inner_size << std::endl;
         layer_sizes.push_back(inner_size);
     }
     layer_sizes.push_back(output_size);
-    perceptron::NeuralNetwork *nn = new perceptron::NeuralNetworkImpl(layer_sizes);
+    perceptron::NeuralNetwork *nn = new perceptron::MultilayerPerceptron(layer_sizes);
     nn->set_learning_rate(p->learning_rate);
-    FILE *output = fopen(p->errs_file_name.data(), "w");
-    // precision, recall, roc auc, f1, accuracy
-    // explain these metrics
-    // why we need activation function
+    if (!p->weights_input_file.empty()) {
+        std::string name = p->weights_input_file.at(0);
+        FILE *input_weights = fopen(name.data(), "r");
+        if (input_weights == nullptr) {
+            std::cerr << p->log_prefix << " Could not open file " << name << std::endl;
+            delete p;
+            delete nn;
+            return FAIL;
+        }
+        bool set = nn->read_weights(input_weights);
+        if (!set) {
+            std::cerr << p->log_prefix << " Could not read weights from " << name << std::endl;
+        }
+    }
+    FILE *err_output = fopen(p->errs_file_name.data(), "w");
+    if (err_output == nullptr) {
+        std::cerr << p->log_prefix << " Could not open file " << p->errs_file_name << std::endl;
+        delete p;
+        delete nn;
+        return FAIL;
+    }
     for (int e = 0; e < p->epochs_count; e++) {
         nn->train(training_examples);
         float sum_err = nn->get_err(test_examples);
         if (e % p->log_frequency == 0 || e == p->epochs_count - 1) {
-            fprintf(output, "%f ", sum_err);
-            std::cout << "Epoch " << e << " : err = " << sum_err << std::endl;
+            fprintf(err_output, "%f ", sum_err);
+            std::cout << p->log_prefix << " Epoch " << e << " : err = " << sum_err << std::endl;
         }
     }
-    fclose(output);
+    fclose(err_output);
+    std::cout << p->log_prefix << " Stored MSE values in " << p->errs_file_name << std::endl;
+    FILE *weights_output = fopen(p->weights_save_file.data(), "w");
+    if (weights_output == nullptr) {
+        std::cerr << p->log_prefix << " Could not open file " << p->weights_save_file << std::endl;
+        delete p;
+        delete nn;
+        return FAIL;
+    }
+    nn->save_weights(weights_output);
+    std::cout << p->log_prefix << " Saved weights values in " << p->weights_save_file << std::endl;
+    fclose(weights_output);
     delete p;
     delete nn;
     return SUCCESS;

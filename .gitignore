@@ -13,4 +13,7 @@ csv.h
 photos
 err*
 configparser
+weights*
+*.data
+src/perceptron
 

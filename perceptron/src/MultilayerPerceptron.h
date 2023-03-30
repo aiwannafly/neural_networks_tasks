@@ -1,5 +1,5 @@
-#ifndef PERCEPTRON_NEURALNETWORKIMPL_H
-#define PERCEPTRON_NEURALNETWORKIMPL_H
+#ifndef PERCEPTRON_MULTILAYERPERCEPTRON_H
+#define PERCEPTRON_MULTILAYERPERCEPTRON_H
 
 #include <vector>
 #include "../eigen/Eigen/Eigen"
@@ -7,13 +7,13 @@
 #include "Layer.h"
 
 namespace perceptron {
-    class NeuralNetworkImpl : public NeuralNetwork {
+    class MultilayerPerceptron : public NeuralNetwork {
     public:
         /*
          * layer_sizes vector should contain sizes of all layers in NN,
          * including entry layer, hidden layers and output layer
          */
-        explicit NeuralNetworkImpl(const std::vector<size_t>& layer_sizes);
+        explicit MultilayerPerceptron(const std::vector<size_t>& layer_sizes);
 
         Eigen::VectorXf predict(const Eigen::VectorXf &input) override;
 
@@ -23,7 +23,11 @@ namespace perceptron {
 
         void set_learning_rate(float new_rate) override;
 
-        ~NeuralNetworkImpl() override;
+        void save_weights(FILE *fp) override;
+
+        bool read_weights(FILE *fp) override;
+
+        ~MultilayerPerceptron() override;
 
     private:
         /*
@@ -42,4 +46,4 @@ namespace perceptron {
     };
 }
 
-#endif //PERCEPTRON_NEURALNETWORKIMPL_H
+#endif //PERCEPTRON_MULTILAYERPERCEPTRON_H

@@ -1,8 +1,11 @@
+#include "MultilayerPerceptron.h"
+
 #include <iostream>
-#include "NeuralNetworkImpl.h"
+
+#include "utils.h"
 
 namespace {
-    float calc_sum_err(const Eigen::VectorXf& diff) {
+    float calc_sum_err(const Eigen::VectorXf &diff) {
         return diff.dot(diff);
     }
 
@@ -16,22 +19,22 @@ namespace {
 }
 
 namespace perceptron {
-    NeuralNetworkImpl::NeuralNetworkImpl(const std::vector<size_t>& layer_sizes) {
+    MultilayerPerceptron::MultilayerPerceptron(const std::vector<size_t> &layer_sizes) {
         assert(layer_sizes.size() > 1);
-        layers = new std::vector<Layer*>();
-        for (int current = 1; current < layer_sizes.size(); current++){
+        layers = new std::vector<Layer *>();
+        for (int current = 1; current < layer_sizes.size(); current++) {
             layers->push_back(new Layer(layer_sizes.at(current - 1), layer_sizes.at(current)));
         }
     }
 
-    NeuralNetworkImpl::~NeuralNetworkImpl() {
-        for (auto & layer : *layers) {
+    MultilayerPerceptron::~MultilayerPerceptron() {
+        for (auto &layer: *layers) {
             delete layer;
         }
         delete layers;
     }
 
-    Eigen::VectorXf NeuralNetworkImpl::predict(const Eigen::VectorXf &input) {
+    Eigen::VectorXf MultilayerPerceptron::predict(const Eigen::VectorXf &input) {
         Eigen::VectorXf current = input;
         for (auto layer: *layers) {
             current = layer->calculate(current);
@@ -39,14 +42,14 @@ namespace perceptron {
         return current;
     }
 
-    float NeuralNetworkImpl::get_example_err(const Eigen::VectorXf &input, const Eigen::VectorXf &expected_output) {
+    float MultilayerPerceptron::get_example_err(const Eigen::VectorXf &input, const Eigen::VectorXf &expected_output) {
         Eigen::VectorXf output = predict(input);
         auto err_vector = expected_output - output;
         float sum_err = calc_sum_err(err_vector);
         return sum_err;
     }
 
-    std::vector<Eigen::VectorXf> *NeuralNetworkImpl::get_interim_results(const Eigen::VectorXf &input) {
+    std::vector<Eigen::VectorXf> *MultilayerPerceptron::get_interim_results(const Eigen::VectorXf &input) {
         auto results = new std::vector<Eigen::VectorXf>();
         Eigen::VectorXf current = input;
         results->push_back(current);
@@ -57,7 +60,8 @@ namespace perceptron {
         return results;
     }
 
-    void NeuralNetworkImpl::train_example(const Eigen::VectorXf &input, const Eigen::VectorXf &expected_output) { // back_prop
+    void MultilayerPerceptron::train_example(const Eigen::VectorXf &input,
+                                             const Eigen::VectorXf &expected_output) { // back_prop
         std::vector<Eigen::VectorXf> *interim_outputs = get_interim_results(input);
         Eigen::VectorXf output = interim_outputs->back();
         auto err_vector = expected_output - output;
@@ -111,21 +115,83 @@ namespace perceptron {
         delete interim_outputs;
     }
 
-    void NeuralNetworkImpl::set_learning_rate(float new_rate) {
+    void MultilayerPerceptron::set_learning_rate(float new_rate) {
         learning_rate = new_rate;
     }
 
-    void NeuralNetworkImpl::train(const std::vector<Example> &examples) {
+    void MultilayerPerceptron::train(const std::vector<Example> &examples) {
         for (const auto &example: examples) {
             train_example(example.sample, example.target);
         }
     }
 
-    float NeuralNetworkImpl::get_err(const std::vector<Example> &examples) {
+    float MultilayerPerceptron::get_err(const std::vector<Example> &examples) {
         float sum_err = 0;
         for (const auto &example: examples) {
             sum_err += get_example_err(example.sample, example.target);
         }
         return sum_err / examples.size();
+    }
+
+    void MultilayerPerceptron::save_weights(FILE *fp) {
+        if (fp == nullptr) {
+            return;
+        }
+        for (auto &layer: *layers) {
+            auto weights = layer->get_weights();
+            auto biases = layer->get_biases();
+            for (int i = 0; i < weights->rows(); i++) {
+                for (int j = 0; j < weights->cols(); j++) {
+                    fprintf(fp, "%f ", (*weights)(i, j));
+                }
+                fprintf(fp, "%f\n", (*biases)(i));
+            }
+        }
+    }
+
+    bool MultilayerPerceptron::read_weights(FILE *fp) {
+        if (fp == nullptr) {
+            return false;
+        }
+        auto new_layers = new std::vector<Layer *>();
+        for (auto &layer: *layers) {
+            size_t width = layer->get_prev_layer_size();
+            size_t height = layer->get_current_layer_size();
+            auto new_layer = new Layer(width, height);
+            auto new_weights = new_layer->get_weights();
+            auto new_biases = new_layer->get_biases();
+            for (int i = 0; i < height; i++) {
+                for (int j = 0; j <= width; j++) {
+                    char *str = utils::ReadStr(fp, 10);
+                    if (str == nullptr) {
+                        cancel:
+                        delete new_layer;
+                        for (auto &l: *new_layers) {
+                            delete l;
+                        }
+                        delete new_layers;
+                        return false;
+                    }
+                    float num = 0.0;
+                    bool extracted = utils::ExtractFloat(str, &num);
+                    free(str);
+                    if (!extracted) {
+                        goto cancel;
+                    }
+                    if (j == width) {
+                        (*new_biases)(i) = num;
+                    } else {
+                        (*new_weights)(i, j) = num;
+                    }
+                }
+            }
+            new_layers->push_back(new_layer);
+        }
+        for (auto &layer: *layers) {
+            delete layer;
+        }
+        delete layers;
+        layers = new_layers;
+        return true;
     }
 }
