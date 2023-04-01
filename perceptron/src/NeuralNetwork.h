@@ -9,6 +9,10 @@ namespace perceptron {
         Eigen::VectorXf target;
     } Example;
 
+    typedef enum {
+        LINEAR_REGRESSION, BINARY_CLASSIFICATION
+    } Task;
+
     class NeuralNetwork {
     public:
         virtual Eigen::VectorXf predict(const Eigen::VectorXf &input) = 0;
@@ -18,6 +22,8 @@ namespace perceptron {
         virtual float get_err(const std::vector<Example> &examples) = 0;
 
         virtual void set_learning_rate(float new_rate) = 0;
+
+        virtual void set_task_type(Task task) = 0;
 
         virtual void save_weights(FILE *fp) = 0;
 

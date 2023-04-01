@@ -23,6 +23,8 @@ namespace perceptron {
 
         void set_learning_rate(float new_rate) override;
 
+        void set_task_type(Task new_task) override;
+
         void save_weights(FILE *fp) override;
 
         bool read_weights(FILE *fp) override;
@@ -43,6 +45,7 @@ namespace perceptron {
 
         std::vector<Layer*> *layers;
         float learning_rate = 0.001;
+        Task task = LINEAR_REGRESSION;
     };
 }
 

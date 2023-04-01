@@ -50,6 +50,7 @@ namespace {
         bool ignore_first_col{};
         std::string weights_save_file;
         std::vector<std::string> weights_input_file;
+        perceptron::Task task;
     } Params;
 
     Params *GetParams(const std::string &config_path) {
@@ -68,6 +69,14 @@ namespace {
         p->ignore_first_col = parser.aConfig<bool>(section_name, "ignore_first_col");
         p->weights_save_file = parser.aConfig<std::string>(section_name, "weights_save_file");
         p->weights_input_file = parser.aConfigVec<std::string>(section_name, "weights_input_file");
+        std::string task = parser.aConfig<std::string>(section_name, "task");
+        if (task == "regression") {
+            p->task = perceptron::LINEAR_REGRESSION;
+        } else if (task == "binary_classification") {
+            p->task = perceptron::BINARY_CLASSIFICATION;
+        } else {
+            throw std::invalid_argument(task);
+        }
         return p;
     }
 
@@ -181,6 +190,7 @@ int main(int argc, char *argv[]) {
     layer_sizes.push_back(output_size);
     perceptron::NeuralNetwork *nn = new perceptron::MultilayerPerceptron(layer_sizes);
     nn->set_learning_rate(p->learning_rate);
+    nn->set_task_type(p->task);
     if (!p->weights_input_file.empty()) {
         std::string name = p->weights_input_file.at(0);
         FILE *input_weights = fopen(name.data(), "r");

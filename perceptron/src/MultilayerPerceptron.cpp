@@ -64,8 +64,35 @@ namespace perceptron {
                                              const Eigen::VectorXf &expected_output) { // back_prop
         std::vector<Eigen::VectorXf> *interim_outputs = get_interim_results(input);
         Eigen::VectorXf output = interim_outputs->back();
-        auto err_vector = expected_output - output;
-
+        Eigen::VectorXf loss_function_deriv = 2 * (expected_output - output);
+//        std::cout << loss_function_deriv << std::endl;
+//        if (task == LINEAR_REGRESSION) {
+//            // MSE
+//            loss_function_deriv = 2 * (expected_output - output);
+//        } else if (task == BINARY_CLASSIFICATION){
+//            // Cross-entropy
+//            float expected = expected_output(0);
+//            float probability = output(0);
+//            assert(expected == 0 || expected == 1);
+//            assert(0 <= probability <= 1);
+//            float loss_deriv = 1;
+//            if (expected == 0) {
+//                if (probability == 1) {
+//                    delete interim_outputs;
+//                    return;
+//                } else {
+//                    loss_deriv /= (1 - probability);
+//                }
+//            } else {
+//                if (probability == 0) {
+//                    delete interim_outputs;
+//                    return;
+//                } else {
+//                    loss_deriv /= -probability;
+//                }
+//            }
+//            loss_function_deriv(0) = loss_deriv;
+//        }
         // from the last hidden layer to the input layer
         Eigen::VectorXf delta_prev;
         Eigen::VectorXf delta_curr;
@@ -85,7 +112,7 @@ namespace perceptron {
 
             if (layer_id == (int) layers->size() - 1) {
                 for (int j = 0; j < current_layer_size; j++) {
-                    delta_curr(j) = 2 * err_vector(j) * sigmoid_deriv(j);
+                    delta_curr(j) = loss_function_deriv(j) * sigmoid_deriv(j);
                     float common_err = learning_rate * delta_curr(j);
                     for (int k = 0; k < prev_layer_size; k++) {
                         float err = common_err * prev_output(k);
@@ -100,7 +127,7 @@ namespace perceptron {
                 for (int j = 0; j < current_layer_size; j++) {
                     Eigen::VectorXf curr_weights = next_weights->col(j);
                     float scalar_prod = curr_weights.dot(delta_prev);
-                    delta_curr(j) = 2 * scalar_prod * sigmoid_deriv(j);
+                    delta_curr(j) = scalar_prod * sigmoid_deriv(j);
                     float common_err = learning_rate * delta_curr(j);
                     for (int k = 0; k < prev_layer_size; k++) {
                         float err = common_err * prev_output(k);
@@ -126,11 +153,24 @@ namespace perceptron {
     }
 
     float MultilayerPerceptron::get_err(const std::vector<Example> &examples) {
+        if (task == BINARY_CLASSIFICATION) {
+            size_t guessed = 0;
+            for (const auto &example: examples) {
+                float predicted = roundf(predict(example.sample)(0));
+                float expected = example.target(0);
+//                std::cout << predicted << " " << expected << std::endl;
+                if (predicted == expected) {
+                    guessed++;
+                }
+            }
+            size_t total = examples.size();
+            return ((float) total - (float) guessed) / (float) total;
+        }
         float sum_err = 0;
         for (const auto &example: examples) {
             sum_err += get_example_err(example.sample, example.target);
         }
-        return sum_err / examples.size();
+        return sum_err / (float) examples.size();
     }
 
     void MultilayerPerceptron::save_weights(FILE *fp) {
@@ -193,5 +233,9 @@ namespace perceptron {
         delete layers;
         layers = new_layers;
         return true;
+    }
+
+    void MultilayerPerceptron::set_task_type(Task new_task) {
+        this->task = new_task;
     }
 }

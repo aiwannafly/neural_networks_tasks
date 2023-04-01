@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-err_data = open("err_gtotal", "r")
+err_data = open("gtotal/err_gtotal", "r")
 nums = list(map(lambda s: float(s), err_data.readline().split()))
 # print(nums)
 y = np.array(nums)

@@ -16,4 +16,6 @@ configparser
 weights*
 *.data
 src/perceptron
+mushrooms
+
 
