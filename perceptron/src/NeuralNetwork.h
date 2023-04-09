@@ -10,8 +10,15 @@ namespace perceptron {
     } Example;
 
     typedef enum {
-        LINEAR_REGRESSION, BINARY_CLASSIFICATION
+        REGRESSION, BINARY_CLASSIFICATION
     } Task;
+
+    typedef struct {
+        size_t true_positive;
+        size_t true_negative;
+        size_t false_positive;
+        size_t false_negative;
+    } BinaryClassificationScore;
 
     class NeuralNetwork {
     public:
@@ -19,7 +26,13 @@ namespace perceptron {
 
         virtual void train(const std::vector<Example> &examples) = 0;
 
-        virtual float get_err(const std::vector<Example> &examples) = 0;
+        virtual float get_mse(const std::vector<Example> &examples) = 0;
+
+        virtual float get_mae(const std::vector<Example> &examples) = 0;
+
+        virtual float get_rscore(const std::vector<Example> &examples) = 0;
+
+        virtual BinaryClassificationScore get_classification_scores(const std::vector<Example> &examples) = 0;
 
         virtual void set_learning_rate(float new_rate) = 0;
 

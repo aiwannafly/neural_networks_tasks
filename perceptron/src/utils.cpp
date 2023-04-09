@@ -4,6 +4,38 @@
 #include <cstring>
 
 namespace utils {
+    bool ReadFloat(FILE *fp, float *num) {
+        char *str = ReadStr(fp, 10);
+        if (str == nullptr) {
+            return false;
+        }
+        bool res = ExtractFloat(str, num);
+        free(str);
+        return res;
+    }
+
+    bool ReadSize_t(FILE *fp, size_t *num) {
+        char *str = ReadStr(fp, 10);
+        if (str == nullptr) {
+            return false;
+        }
+        bool res = ExtractSize_t(str, num);
+        free(str);
+        return res;
+    }
+
+    bool ExtractSize_t(const char *buf, size_t *num) {
+        if (nullptr == buf || num == nullptr) {
+            return false;
+        }
+        char *end_ptr = nullptr;
+        *num = strtoul(buf, &end_ptr, 10);
+        if (buf + strlen(buf) > end_ptr) {
+            return false;
+        }
+        return true;
+    }
+
     bool ExtractFloat(const char *buf, float *num) {
         if (nullptr == buf || num == nullptr) {
             return false;
