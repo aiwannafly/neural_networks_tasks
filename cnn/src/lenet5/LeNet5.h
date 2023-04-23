@@ -4,10 +4,10 @@
 #include "ConvolutionNeuralNetwork.h"
 #include "../layers/convolution/ConvolutionLayer.h"
 #include "../layers/pooling/MaxPoolingLayer.h"
-#include "../layers/depth/PerceptronLayer.h"
+#include "../layers/dense/PerceptronLayer.h"
 #include "../layers/softmax/SoftmaxLayer.h"
 
-namespace cnn {
+namespace CNN {
     /*
      * This NN accepts 28x28 length vectors, returns ${output_size}
      * probabilities of belonging to one of a class.
@@ -29,7 +29,7 @@ namespace cnn {
         std::vector<CNNLayer *> cnn_layers;
         std::vector<perceptron::PerceptronLayer *> dense_layers;
         SoftmaxLayer *softmax_layer;
-        float learning_rate = 0.001;
+        float learning_rate = 0.01;
 
         typedef struct {
             std::vector<Tensor3D> cnn_tensors;

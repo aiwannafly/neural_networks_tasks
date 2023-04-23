@@ -16,7 +16,7 @@
  * Core (or a filter) is a tensor of size coreSize * coreSize * inputSlicesCount
  * and one bias. Each core produces one slice (feature map).
  */
-namespace cnn {
+namespace CNN {
     class ConvolutionLayer : public CNNLayer {
     public:
 
@@ -24,7 +24,7 @@ namespace cnn {
 
         Tensor3D apply(const Tensor3D &input) override;
 
-        Tensor3D backprop(const Tensor3D &input, const Tensor3D &deltas) override;
+        Tensor3D backprop(const Tensor3D &input, const Tensor3D &deltas, float learningRate) override;
 
         long getCoreSize() const;
 
@@ -39,9 +39,15 @@ namespace cnn {
         ~ConvolutionLayer() override;
     private:
 
+        void changeWeights(const Tensor3D &input, const Tensor3D &deltas, float learningRate);
+
+        Tensor4D getRotatedCores() const;
+
         long coreSize;
         long inputMapsCount;
         long coresCount;
+        std::array<long, 4> coreExtent{};
+        std::array<long, 3> extent{};
 
         // dims of cores:  coresCount * inputMapsCount * coreSize * coreSize
         Tensor4D *cores;

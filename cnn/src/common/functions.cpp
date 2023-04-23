@@ -1,6 +1,7 @@
 #include "functions.h"
 
 #include <cmath>
+#include <utility>
 
 float sigmoid(float x, float param) {
     return 1 / (1 + std::exp(-param * x));
@@ -15,6 +16,10 @@ Eigen::VectorXf tanh_deriv(Eigen::VectorXf tanh_vector) {
         tanh_vector(i) = (1 - tanh_vector(i)) * (1 + tanh_vector(i));
     }
     return tanh_vector;
+}
+
+Eigen::VectorXf sigmoid_deriv(Eigen::VectorXf sigmoid_vector) {
+    return mul_inverse(std::move(sigmoid_vector));
 }
 
 Eigen::VectorXf cross_entropy_deriv(const Eigen::VectorXf &expected_output,

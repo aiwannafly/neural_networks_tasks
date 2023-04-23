@@ -3,7 +3,7 @@
 
 #include "../../eigen.h"
 
-namespace cnn {
+namespace CNN {
     class SoftmaxLayer {
 
     public:

@@ -24,7 +24,7 @@ namespace perceptron {
     Eigen::VectorXf PerceptronLayer::apply(const Eigen::VectorXf& input) {
         Eigen::VectorXf sum = *weights * input + *biases;
         for (int i = 0; i < sum.size(); i++) {
-            sum(i) = std::tanh(sum(i));
+            sum(i) = tanh(sum(i));
         }
         // with use of vector op
         return sum;

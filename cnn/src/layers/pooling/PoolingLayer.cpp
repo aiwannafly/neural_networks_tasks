@@ -1,6 +1,6 @@
 #include "PoolingLayer.h"
 
-namespace cnn {
+namespace CNN {
     PoolingLayer::PoolingLayer(int size) {
         assert(size != 0);
         this->size = size;

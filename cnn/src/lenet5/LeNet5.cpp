@@ -9,7 +9,7 @@
 #define LAST_CONV_LAYER_SIZE (26)
 #define IMG_SIZE (28)
 
-namespace cnn {
+namespace CNN {
     LeNet5::LeNet5(size_t output_size) {
         this->output_size = output_size;
         cnn_layers.push_back(new ConvolutionLayer(FIRST_CONV_CORE_SIZE, 4, 1));
@@ -41,7 +41,7 @@ namespace cnn {
         }
         Eigen::VectorXf dense_input = Eigen::VectorXf(current_cnn.dimension(SLICES));
         for (int i = 0; i < current_cnn.dimension(SLICES); i++) {
-            dense_input(i) = current_cnn(i, 0, 0);
+            dense_input(i) = current_cnn(i, 0, 0) / 10000;
         }
         Eigen::VectorXf current_dense = dense_input;
         for (auto *layer: dense_layers) {
@@ -60,11 +60,16 @@ namespace cnn {
         assert(example.expected_output.size() == output_size);
         full_output out = predictWithFullOutput(example.sample);
         Eigen::VectorXf dense_input_deltas = denseLayersBackProp(out, example.expected_output);
+//        std::cout << "DENSE DELTAS" << std::endl;
+//        std::cout << dense_input_deltas << std::endl;
         Tensor3D tensor_deltas(dense_input_deltas.size(), 1, 1);
         for (int i = 0; i < dense_input_deltas.size(); i++) {
             tensor_deltas(i, 0, 0) = dense_input_deltas(i);
         }
-
+        for (int i = (int) cnn_layers.size() - 1; i >= 0; i--) {
+            auto input = out.cnn_tensors.at(i);
+            tensor_deltas = cnn_layers.at(i)->backprop(input, tensor_deltas, learning_rate);
+        }
     }
 
     LeNet5::full_output LeNet5::predictWithFullOutput(const Eigen::Tensor<float, 3> &input) {
@@ -80,7 +85,7 @@ namespace cnn {
         }
         Eigen::VectorXf dense_input = Eigen::VectorXf(LAST_CONV_LAYER_SIZE);
         for (int i = 0; i < LAST_CONV_LAYER_SIZE; i++) {
-            dense_input(i) = current(i, 0, 0);
+            dense_input(i) = current(i, 0, 0) / 10000;
         }
         Eigen::VectorXf currentV = dense_input;
         full_output.dense_vectors.push_back(dense_input);
@@ -95,6 +100,11 @@ namespace cnn {
     Eigen::VectorXf LeNet5::denseLayersBackProp(const LeNet5::full_output& out, const Eigen::VectorXf &expected_output) {
         Eigen::VectorXf loss_deriv = cross_entropy_deriv(expected_output, out.softmax_output);
         Eigen::VectorXf softmax_deriv = mul_inverse(out.softmax_output);
+//        std::cout << "loss_deriv" << std::endl;
+//        std::cout << loss_deriv << std::endl;
+//
+//        std::cout << "softmax_deriv" << std::endl;
+//        std::cout << softmax_deriv << std::endl;
 
         Eigen::VectorXf delta_prev;
         Eigen::VectorXf delta_curr;
@@ -105,7 +115,13 @@ namespace cnn {
             Eigen::VectorXf layer_input = out.dense_vectors.at(layer_id);
             Eigen::VectorXf layer_output = out.dense_vectors.at(layer_id + 1);
 
+//            std::cout << "layer_output" << std::endl;
+//            std::cout << layer_output << std::endl;
             Eigen::VectorXf tan_deriv = tanh_deriv(layer_output);
+//            std::cout << "layer_input" << std::endl;
+//            std::cout << layer_input << std::endl;
+//            std::cout << "tan_deriv" << std::endl;
+//            std::cout << tan_deriv << std::endl;
             delta_curr = Eigen::VectorXf(layer_output_size);
             Eigen::MatrixXf *weights = dense_layers.at(layer_id)->getWeights();
             Eigen::VectorXf *biases = dense_layers.at(layer_id)->getBiases();
@@ -136,6 +152,8 @@ namespace cnn {
                     (*biases)(j) += err;
                 }
             }
+//            std::cout << "delta_curr" << std::endl;
+//            std::cout << delta_curr << std::endl;
             delta_prev = delta_curr;
         }
         auto *first_layer = dense_layers.at(0);

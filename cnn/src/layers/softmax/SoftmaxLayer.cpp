@@ -1,6 +1,6 @@
 #include "SoftmaxLayer.h"
 
-Eigen::VectorXf cnn::SoftmaxLayer::apply(const Eigen::VectorXf &input) {
+Eigen::VectorXf CNN::SoftmaxLayer::apply(const Eigen::VectorXf &input) {
     size_t size = input.size();
     Eigen::VectorXf result = Eigen::VectorXf(size);
     float denominator = 0;

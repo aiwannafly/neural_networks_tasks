@@ -3,7 +3,7 @@
 
 #include "../eigen.h"
 
-namespace cnn {
+namespace CNN {
     typedef struct {
         Tensor3D sample;
         Eigen::VectorXf expected_output;

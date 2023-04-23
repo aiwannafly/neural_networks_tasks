@@ -3,14 +3,14 @@
 
 #include "../CNNLayer.h"
 
-namespace cnn {
+namespace CNN {
     class PoolingLayer : public CNNLayer {
     public:
         explicit PoolingLayer(int size);
 
         Tensor3D apply(const Tensor3D &input) override;
 
-        Tensor3D backprop(const Tensor3D &input, const Tensor3D &deltas) override = 0;
+        Tensor3D backprop(const Tensor3D &input, const Tensor3D &deltas, float learningRate) override = 0;
 
         ~PoolingLayer() override = default;
 

@@ -11,7 +11,7 @@
  *  - implement back propagation
  */
 int main() {
-    cnn::LeNet5 nn = cnn::LeNet5(10);
+    CNN::LeNet5 nn = CNN::LeNet5(10);
     Eigen::VectorXf input = Eigen::VectorXf(IMG_SIZE * IMG_SIZE);
     input.setRandom();
     Tensor3D tensorInput(1, IMG_SIZE, IMG_SIZE);
@@ -20,8 +20,20 @@ int main() {
             tensorInput(0, i, j) = input(j + i * IMG_SIZE);
         }
     }
-    auto output = nn.predict(tensorInput);
-    std::cout << output << std::endl;
+    Eigen::VectorXf expected(10);
+    expected.setZero();
+    expected(5) = 1;
+    CNN::Example example;
+    example.expected_output = expected;
+    example.sample = tensorInput;
+    std::vector<CNN::Example> examples;
+    examples.push_back(example);
+    for (int i = 0; i < 1000; i++) {
+        nn.train(examples);
+        auto output = nn.predict(tensorInput);
+        std::cout << "-----" << std::endl;
+        std::cout << output << std::endl;
+    }
     return 0;
 }
 
