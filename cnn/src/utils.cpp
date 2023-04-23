@@ -62,14 +62,14 @@ namespace utils {
         return b;
     }
 
-    size_t MinZ(size_t a, size_t b) {
+    long MinL(long a, long b) {
         if (a < b) {
             return a;
         }
         return b;
     }
 
-    size_t MaxZ(size_t a, size_t b) {
+    long MaxL(long a, long b) {
         if (a > b) {
             return a;
         }

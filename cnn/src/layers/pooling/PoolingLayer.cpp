@@ -1,27 +1,32 @@
 #include "PoolingLayer.h"
 
-#include "../../utils.h"
-#include "../../feature_map/VectorFeatureMap.h"
-
-namespace cnn{
-    PoolingLayer::PoolingLayer(size_t size) {
+namespace cnn {
+    PoolingLayer::PoolingLayer(int size) {
         assert(size != 0);
         this->size = size;
     }
 
-    std::vector<FeatureMap*> *PoolingLayer::apply(std::vector<FeatureMap*> *maps) {
-        auto *result = new std::vector<FeatureMap*>();
-        for (auto *map : *maps) {
-            assert(map->getHeight() % size == 0);
-            assert(map->getWidth() % size == 0);
-            FeatureMap *pooledMap = new VectorFeatureMap(map->getWidth() / size, map->getHeight() / size);
-            for (size_t y = 0; y < map->getHeight(); y += size) {
-                for (size_t x = 0; x < map->getWidth(); x += size) {
-                    pooledMap->setValue(x, y, getPool(x, y, map));
+    Tensor3D PoolingLayer::apply(const Tensor3D &input) {
+        assert(input.dimension(ROWS) % size == 0);
+        assert(input.dimension(COLS) % size == 0);
+        Tensor3D pooled(input.dimension(SLICES), input.dimension(ROWS) / size,
+                        input.dimension(COLS) / size);
+        std::array<long, 3> offset = {0, 0, 0}; // Starting point
+        std::array<long, 3> extent{};
+        extent[SLICES] = 1;
+        extent[ROWS] = size;
+        extent[COLS] = size;
+        for (long slice = 0; slice < input.dimension(SLICES); slice++) {
+            offset[SLICES] = slice;
+            for (long row = 0; row < input.dimension(ROWS); row += size) {
+                offset[ROWS] = row;
+                for (long col = 0; col < input.dimension(COLS); col += size) {
+                    offset[COLS] = col;
+                    float pooledVal = getPool(input.slice(offset, extent));
+                    pooled(slice, row / size, col / size) = pooledVal;
                 }
             }
-            result->push_back(pooledMap);
         }
-        return result;
+        return pooled;
     }
 }

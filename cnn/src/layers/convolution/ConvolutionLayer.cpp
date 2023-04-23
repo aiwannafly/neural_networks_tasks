@@ -1,72 +1,106 @@
+#include <iostream>
 #include "ConvolutionLayer.h"
 #include "../../utils.h"
-#include "../../feature_map/VectorFeatureMap.h"
 
 namespace cnn {
-    ConvolutionLayer::ConvolutionLayer(size_t coreSize, size_t outputMapsCount, size_t inputMapsCount) {
+    ConvolutionLayer::ConvolutionLayer(long coreSize, long coresCount, long inputSlicesCount) {
         this->coreSize = coreSize;
-        this->inputMapsCount = inputMapsCount;
-        this->cores = new std::vector<Eigen::MatrixXf *>;
-        for (int i = 0; i < outputMapsCount; i++) {
-            auto *core = new Eigen::MatrixXf(coreSize, coreSize);
-            core->setRandom();
-            cores->push_back(core);
-        }
+        this->inputMapsCount = inputSlicesCount;
+        this->coresCount = coresCount;
+        this->cores = new Tensor4D(coresCount, inputSlicesCount, coreSize, coreSize);
+        this->cores->setRandom();
+        this->biases = new Eigen::VectorXf(coresCount);
+        this->biases->setRandom();
     }
 
     ConvolutionLayer::~ConvolutionLayer() {
-        for (auto *core: *cores) {
-            delete core;
-        }
         delete cores;
+        delete biases;
     }
 
-    size_t ConvolutionLayer::getCoreSize() const {
+    long ConvolutionLayer::getCoreSize() const {
         return coreSize;
     }
 
-    std::vector<Eigen::MatrixXf *> *ConvolutionLayer::getCores() {
+    Tensor4D *ConvolutionLayer::getCores() {
         return cores;
     }
 
-    std::vector<FeatureMap *> *ConvolutionLayer::apply(std::vector<FeatureMap *> *maps) {
-        auto *result = new std::vector<FeatureMap *>;
-        for (auto *map: *maps) {
-            for (auto *core: *cores) {
-                result->push_back(applyCore(map, core));
+    float getScalarProd(const Tensor3D &a, const Tensor3D &b) {
+        assert(a.dimension(SLICES) == b.dimension(SLICES));
+        assert(a.dimension(ROWS) == b.dimension(ROWS));
+        assert(a.dimension(COLS) == b.dimension(COLS));
+        float res = 0;
+        for (int i = 0; i < a.dimension(SLICES); i++) {
+            for (int j = 0; j < a.dimension(ROWS); j++) {
+                for (int k = 0; k < a.dimension(COLS); k++) {
+                    res += a(i, j, k) * b(i, j, k);
+                }
+            }
+        }
+        return res;
+    }
+
+    Tensor3D ConvolutionLayer::apply(const Tensor3D &input) {
+        long edgeOffset = coreSize / 2;
+        assert(2 * edgeOffset <= input.dimension(ROWS));
+        assert(2 * edgeOffset <= input.dimension(COLS));
+        assert(input.dimension(SLICES) == inputMapsCount);
+
+        std::array<long, 3> offset = {0, 0, 0}; // Starting point
+        std::array<long, 3> extent{};
+        extent[SLICES] = inputMapsCount;
+        extent[ROWS] = coreSize;
+        extent[COLS] = coreSize;
+
+        std::array<long, 4> coreOffset = {0, 0, 0, 0}; // Starting point
+        std::array<long, 4> coreExtent{};
+        coreExtent[0] = 1;
+        coreExtent[SLICES + 1] = inputMapsCount;
+        coreExtent[ROWS + 1] = coreSize;
+        coreExtent[COLS + 1] = coreSize;
+
+        long resHeight = MAX(input.dimension(ROWS) - 2 * edgeOffset, 1);
+        long resWidth = MAX(input.dimension(COLS) - 2 * edgeOffset, 1);
+        Tensor3D result(coresCount, resHeight, resWidth);
+//        std::cout << "Result dimensions:" << std::endl;
+//        std::cout << result.dimension(SLICES) << std::endl;
+//        std::cout << result.dimension(ROWS) << std::endl;
+//        std::cout << result.dimension(COLS) << std::endl;
+
+        std::vector<Tensor3D> coresWeights;
+        for (long coreId = 0; coreId < coresCount; coreId++) {
+            coreOffset[0] = coreId;
+            Tensor3D coreWeights = (*cores).slice(coreOffset, coreExtent).reshape(extent);
+            coresWeights.push_back(coreWeights);
+        }
+        Eigen::Tensor<float, 0> scalarProd;
+        Tensor3D currentPart;
+        for (long y = edgeOffset; y < input.dimension(ROWS) - edgeOffset; y++) {
+            offset[ROWS] = y - edgeOffset;
+            for (long x = edgeOffset; x < input.dimension(COLS) - edgeOffset; x++) {
+                offset[COLS] = x - edgeOffset;
+                currentPart = input.slice(offset, extent);
+                for (long coreId = 0; coreId < coresCount; coreId++) {
+                    float bias = (*biases)(coreId);
+                    scalarProd = (currentPart * coresWeights.at(coreId)).sum();
+                    float convResult = scalarProd(0) + bias;
+                    result(coreId, y - edgeOffset, x - edgeOffset) = convResult;
+                }
             }
         }
         return result;
     }
 
-    FeatureMap *ConvolutionLayer::applyCore(FeatureMap *map, Eigen::MatrixXf *core) const {
-        size_t offset = coreSize / 2;
-        assert(2 * offset <= map->getHeight());
-        assert(2 * offset <= map->getWidth());
-        size_t resultedWidth = utils::MaxZ(map->getWidth() - 2 * offset, 1);
-        size_t resultedHeight = utils::MaxZ(map->getHeight() - 2 * offset, 1);
-        FeatureMap *resultedMap = new VectorFeatureMap(resultedWidth, resultedHeight);
-        for (size_t y = offset; y < map->getHeight() - offset; y++) {
-            for (size_t x = offset; x < map->getWidth() - offset; x++) {
-                float res = 0;
-                for (size_t i = y - offset; i < coreSize; i++) {
-                    for (size_t j = x - offset; j < coreSize; j++) {
-                        size_t mX = j - x + offset;
-                        size_t mY = i - y + offset;
-                        res += map->getValue(i, j) * (*core)((int) mY, (int) mX);
-                    }
-                }
-                resultedMap->setValue(x - offset, y - offset, res);
-            }
-        }
-        return resultedMap;
+    long ConvolutionLayer::getCoresCount() const {
+        return coresCount;
     }
 
-    size_t ConvolutionLayer::getOutputMapsCount() const {
-        return cores->size();
-    }
-
-    size_t ConvolutionLayer::getInputMapsCount() const {
+    long ConvolutionLayer::getInputMapsCount() const {
         return inputMapsCount;
+    }
+
+    Eigen::VectorXf *ConvolutionLayer::getBiases() {
+        return biases;
     }
 }

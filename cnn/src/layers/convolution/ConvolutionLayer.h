@@ -8,30 +8,43 @@
 #include "../CNNLayer.h"
 #include "../../eigen.h"
 
+/*
+ * It's a convolution layer. The parameters of a core depend
+ * on size of an input tensor, i.e. slices (feature maps) count, so
+ * it must be passed through constructor.
+ *
+ * Core (or a filter) is a tensor of size coreSize * coreSize * inputSlicesCount
+ * and one bias. Each core produces one slice (feature map).
+ */
 namespace cnn {
     class ConvolutionLayer : public CNNLayer {
     public:
 
-        ConvolutionLayer(size_t coreSize, size_t outputMapsCount, size_t inputMapsCount);
+        ConvolutionLayer(long coreSize, long coresCount, long inputSlicesCount);
 
-        std::vector<FeatureMap*> *apply(std::vector<FeatureMap*> *maps) override;
+        Tensor3D apply(const Tensor3D &input) override;
 
-        size_t getCoreSize() const;
+        long getCoreSize() const;
 
-        size_t getOutputMapsCount() const;
+        long getCoresCount() const;
 
-        size_t getInputMapsCount() const;
+        long getInputMapsCount() const;
 
-        std::vector<Eigen::MatrixXf*> *getCores();
+        Tensor4D *getCores();
+
+        Eigen::VectorXf *getBiases();
 
         ~ConvolutionLayer() override;
     private:
-        FeatureMap *applyCore(FeatureMap *map, Eigen::MatrixXf *core) const;
 
-        size_t coreSize;
-        size_t inputMapsCount;
+        long coreSize;
+        long inputMapsCount;
+        long coresCount;
 
-        std::vector<Eigen::MatrixXf*> *cores;
+        // dims of cores:  coresCount * inputMapsCount * coreSize * coreSize
+        Tensor4D *cores;
+        // dims of biases: coresCount
+        Eigen::VectorXf *biases;
     };
 }
 

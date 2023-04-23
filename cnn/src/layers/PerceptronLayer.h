@@ -19,7 +19,7 @@ namespace perceptron {
         Eigen::VectorXf *getBiases();
 
         // returns sigma(W * input + bias)
-        Eigen::VectorXf calculate(const Eigen::VectorXf& input);
+        Eigen::VectorXf apply(const Eigen::VectorXf& input);
 
     private:
        float sigmoid_param;

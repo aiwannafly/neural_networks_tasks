@@ -24,7 +24,7 @@ namespace perceptron {
         return 1 / (1 + std::exp(-sigmoid_param * x));
     }
 
-    Eigen::VectorXf PerceptronLayer::calculate(const Eigen::VectorXf& input) {
+    Eigen::VectorXf PerceptronLayer::apply(const Eigen::VectorXf& input) {
         Eigen::VectorXf sum = *weights * input + *biases;
         for (int i = 0; i < sum.size(); i++) {
             sum(i) = sigmoid(sum(i), sigmoid_param);

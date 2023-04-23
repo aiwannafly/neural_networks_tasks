@@ -1,22 +1,21 @@
 #ifndef CNN_POOLINGLAYER_H
 #define CNN_POOLINGLAYER_H
 
-
 #include "../CNNLayer.h"
 
 namespace cnn {
     class PoolingLayer : public CNNLayer {
     public:
-        explicit PoolingLayer(size_t size);
+        explicit PoolingLayer(int size);
 
-        std::vector<FeatureMap*> *apply(std::vector<FeatureMap*> *maps) override;
+        Tensor3D apply(const Tensor3D &input) override;
 
         ~PoolingLayer() override = default;
 
     protected:
-        size_t size;
+        int size;
 
-        virtual float getPool(size_t x, size_t y, FeatureMap *map) const = 0;
+        virtual float getPool(Tensor3D slicePart) const = 0;
     };
 }
 

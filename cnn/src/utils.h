@@ -3,6 +3,8 @@
 
 #include <cstdio>
 
+#define MAX(a, b) (a < b) ? b : a
+
 namespace utils {
     bool ExtractSize_t(const char *buf, size_t *num);
 
@@ -12,9 +14,9 @@ namespace utils {
 
     float Maxf(float a, float b);
 
-    size_t MinZ(size_t a, size_t b);
+    long MinL(long a, long b);
 
-    size_t MaxZ(size_t a, size_t b);
+    long MaxL(long a, long b);
 
     bool ReadFloat(FILE *fp, float *num);
 
