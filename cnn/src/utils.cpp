@@ -48,34 +48,6 @@ namespace utils {
         return true;
     }
 
-    float Minf(float a, float b) {
-        if (a < b) {
-            return a;
-        }
-        return b;
-    }
-
-    float Maxf(float a, float b) {
-        if (a > b) {
-            return a;
-        }
-        return b;
-    }
-
-    long MinL(long a, long b) {
-        if (a < b) {
-            return a;
-        }
-        return b;
-    }
-
-    long MaxL(long a, long b) {
-        if (a > b) {
-            return a;
-        }
-        return b;
-    }
-
     char *ReadStr(FILE *fp, size_t start_capacity) {
         if (fp == nullptr || start_capacity == 0) {
             return nullptr;

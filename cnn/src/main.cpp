@@ -4,7 +4,27 @@
 
 #include "eigen.h"
 
+#define IMG_SIZE (28)
+
+/*
+ * TODO:
+ *  - implement back propagation
+ */
 int main() {
+    cnn::LeNet5 nn = cnn::LeNet5(10);
+    Eigen::VectorXf input = Eigen::VectorXf(IMG_SIZE * IMG_SIZE);
+    input.setRandom();
+    Tensor3D tensorInput(1, IMG_SIZE, IMG_SIZE);
+    for (int i = 0; i < IMG_SIZE; i++) {
+        for (int j = 0; j < IMG_SIZE; j++) {
+            tensorInput(0, i, j) = input(j + i * IMG_SIZE);
+        }
+    }
+    auto output = nn.predict(tensorInput);
+    std::cout << output << std::endl;
+    return 0;
+}
+
 //    Eigen::Tensor<float, 3> m(3, 10, 10);          //Initialize
 //    m.setConstant(3);                               //Set random values
 //    m(0, 0, 0) = 7;
@@ -32,11 +52,3 @@ int main() {
 //    float max = b(0);
 //    std::cout << max << std::endl;
 //    std::cout << slice.reshape(shape2) << std::endl;  //Extract slice
-
-    cnn::LeNet5 nn = cnn::LeNet5(10);
-    Eigen::VectorXf input = Eigen::VectorXf(28 * 28);
-    input.setRandom();
-    auto output = nn.predict(input);
-    std::cout << output << std::endl;
-    return 0;
-}

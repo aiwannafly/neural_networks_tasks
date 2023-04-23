@@ -24,6 +24,8 @@ namespace cnn {
 
         Tensor3D apply(const Tensor3D &input) override;
 
+        Tensor3D backprop(const Tensor3D &input, const Tensor3D &deltas) override;
+
         long getCoreSize() const;
 
         long getCoresCount() const;

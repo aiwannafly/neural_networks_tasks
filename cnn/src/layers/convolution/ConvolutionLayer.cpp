@@ -2,6 +2,8 @@
 #include "ConvolutionLayer.h"
 #include "../../utils.h"
 
+#include "../../common/functions.h"
+
 namespace cnn {
     ConvolutionLayer::ConvolutionLayer(long coreSize, long coresCount, long inputSlicesCount) {
         this->coreSize = coreSize;
@@ -26,21 +28,6 @@ namespace cnn {
         return cores;
     }
 
-    float getScalarProd(const Tensor3D &a, const Tensor3D &b) {
-        assert(a.dimension(SLICES) == b.dimension(SLICES));
-        assert(a.dimension(ROWS) == b.dimension(ROWS));
-        assert(a.dimension(COLS) == b.dimension(COLS));
-        float res = 0;
-        for (int i = 0; i < a.dimension(SLICES); i++) {
-            for (int j = 0; j < a.dimension(ROWS); j++) {
-                for (int k = 0; k < a.dimension(COLS); k++) {
-                    res += a(i, j, k) * b(i, j, k);
-                }
-            }
-        }
-        return res;
-    }
-
     Tensor3D ConvolutionLayer::apply(const Tensor3D &input) {
         long edgeOffset = coreSize / 2;
         assert(2 * edgeOffset <= input.dimension(ROWS));
@@ -63,11 +50,6 @@ namespace cnn {
         long resHeight = MAX(input.dimension(ROWS) - 2 * edgeOffset, 1);
         long resWidth = MAX(input.dimension(COLS) - 2 * edgeOffset, 1);
         Tensor3D result(coresCount, resHeight, resWidth);
-//        std::cout << "Result dimensions:" << std::endl;
-//        std::cout << result.dimension(SLICES) << std::endl;
-//        std::cout << result.dimension(ROWS) << std::endl;
-//        std::cout << result.dimension(COLS) << std::endl;
-
         std::vector<Tensor3D> coresWeights;
         for (long coreId = 0; coreId < coresCount; coreId++) {
             coreOffset[0] = coreId;
@@ -76,16 +58,19 @@ namespace cnn {
         }
         Eigen::Tensor<float, 0> scalarProd;
         Tensor3D currentPart;
-        for (long y = edgeOffset; y < input.dimension(ROWS) - edgeOffset; y++) {
+        long evenOffset = 0;
+        if (coreSize % 2 == 0) {
+            evenOffset = 1;
+        }
+        for (long y = edgeOffset; y < input.dimension(ROWS) - edgeOffset + evenOffset; y++) {
             offset[ROWS] = y - edgeOffset;
-            for (long x = edgeOffset; x < input.dimension(COLS) - edgeOffset; x++) {
+            for (long x = edgeOffset; x < input.dimension(COLS) - edgeOffset + evenOffset; x++) {
                 offset[COLS] = x - edgeOffset;
                 currentPart = input.slice(offset, extent);
                 for (long coreId = 0; coreId < coresCount; coreId++) {
                     float bias = (*biases)(coreId);
                     scalarProd = (currentPart * coresWeights.at(coreId)).sum();
-                    float convResult = scalarProd(0) + bias;
-                    result(coreId, y - edgeOffset, x - edgeOffset) = convResult;
+                    result(coreId, y - edgeOffset, x - edgeOffset) = ReLU(scalarProd(0) + bias);
                 }
             }
         }
@@ -102,5 +87,10 @@ namespace cnn {
 
     Eigen::VectorXf *ConvolutionLayer::getBiases() {
         return biases;
+    }
+
+    Tensor3D ConvolutionLayer::backprop(const Tensor3D &input, const Tensor3D &deltas) {
+        Tensor3D new_deltas = Tensor3D(input.dimension(SLICES), input.dimension(ROWS), input.dimension(COLS));
+        return new_deltas;
     }
 }

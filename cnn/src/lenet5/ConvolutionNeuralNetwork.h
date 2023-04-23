@@ -5,15 +5,15 @@
 
 namespace cnn {
     typedef struct {
-        Eigen::VectorXf sample;
-        Eigen::VectorXf target;
+        Tensor3D sample;
+        Eigen::VectorXf expected_output;
     } Example;
 
-    class NeuralNetwork {
+    class ConvolutionNeuralNetwork {
     public:
-        virtual Eigen::VectorXf predict(const Eigen::VectorXf &input) = 0;
+        virtual Eigen::VectorXf predict(const Tensor3D &input) = 0;
 
-//        virtual void train(const std::vector<Example> &examples) = 0;
+        virtual void train(const std::vector<Example> &examples) = 0;
 //
 //        virtual void setLearningRate(float new_rate) = 0;
 //
@@ -21,7 +21,7 @@ namespace cnn {
 //
 //        virtual bool readWeights(FILE *fp) = 0;
 
-        virtual ~NeuralNetwork() = default;
+        virtual ~ConvolutionNeuralNetwork() = default;
     };
 }
 
