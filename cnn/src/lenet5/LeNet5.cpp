@@ -38,13 +38,13 @@ namespace CNN {
         Tensor3D current_cnn = input;
         if (PRINT_FORWARD) {
             std::cout << "INPUT: =====================================" << std::endl;
-            PrintTensor(input);
+            PrintTensor3D(input);
         }
         for (auto *layer: cnn_layers) {
             current_cnn = layer->apply(current_cnn);
             if (PRINT_FORWARD) {
                 std::cout << "NEXT: ==================================" << std::endl;
-                PrintTensor(current_cnn);
+                PrintTensor3D(current_cnn);
             }
         }
         Eigen::VectorXf dense_input = Eigen::VectorXf(current_cnn.dimension(MAPS));

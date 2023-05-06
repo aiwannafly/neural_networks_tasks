@@ -17,7 +17,15 @@
 #define PRINT_BACKWARD (0)
 #define SIGMOID_PARAM (0.1)
 
-void PrintTensor(const Tensor3D &tensor);
+Eigen::VectorXf toVector(const Tensor3D &input);
+
+Tensor3D toTensor3D(const Eigen::VectorXf &input, int maps, int cols, int rows);
+
+Eigen::MatrixXf toMatrix(const Tensor4D &input);
+
+Tensor4D toTensor4D(const Eigen::MatrixXf &input, int f_count, int maps, int cols, int rows);
+
+void PrintTensor3D(const Tensor3D &tensor);
 
 void PrintTensorDims(const Tensor3D &tensor);
 

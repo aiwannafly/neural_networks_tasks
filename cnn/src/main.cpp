@@ -85,14 +85,55 @@ int main(int argc, char *argv[]) {
         std::cerr << "usage: ./cnn <mnist-train.csv> <mnist-test.csv>" << std::endl;
         return -1;
     }
-    std::vector<CNN::Example> all_examples = ParseMNISTCSV(argv[1]);
-    CNN::LeNet5 nn = CNN::LeNet5(10);
-    auto example = all_examples.at(0);
-    PrintVector(example.expected_output);
-    for (int i = 0; i < 100; i++) {
-        nn.trainExample(example);
-        PrintVector(nn.predict(example.sample));
-    }
+    Tensor3D input = Tensor3D(2, 2, 2);
+    input(0, 0, 0) = 0.5;
+    input(0, 0, 1) = 1;
+    input(0, 1, 0) = 1;
+    input(0, 1, 1) = 0.5;
+    input(1, 0, 0) = 1;
+    input(1, 0, 1) = 0;
+    input(1, 1, 0) = 0.5;
+    input(1, 1, 1) = 0.5;
+    auto inputVector = toVector(input);
+    Tensor3D inputBack = toTensor3D(inputVector, 2, 2, 2);
+
+    PrintVector(inputVector);
+    PrintTensor3D(inputBack);
+
+    Tensor4D weights = Tensor4D(2, 2, 2, 2);
+    weights(0, 0, 0, 0) = -1;
+    weights(0, 0, 0, 1) = 1;
+    weights(0, 0, 1, 0) = -1;
+    weights(0, 0, 1, 1) = 1;
+    weights(0, 1, 0, 0) = 2;
+    weights(0, 1, 0, 1) = -1;
+    weights(0, 1, 1, 0) = 0;
+    weights(0, 1, 1, 1) = -1;
+
+    weights(1, 0, 0, 0) = 0;
+    weights(1, 0, 0, 1) = 2;
+    weights(1, 0, 1, 0) = 1;
+    weights(1, 0, 1, 1) = 1;
+    weights(1, 1, 0, 0) = 0;
+    weights(1, 1, 0, 1) = 1;
+    weights(1, 1, 1, 0) = 0;
+    weights(1, 1, 1, 1) = 1;
+
+    Eigen::MatrixXf wMatrix = toMatrix(weights);
+    Tensor4D weightsBack = toTensor4D(wMatrix, 2, 2, 2, 2);
+    std::cout << wMatrix << std::endl;
+    std::cout << inputVector.cols() << std::endl;
+    std::cout << wMatrix.rows() << std::endl;
+    PrintVector(wMatrix * inputVector);
+
+//    std::vector<CNN::Example> all_examples = ParseMNISTCSV(argv[1]);
+//    CNN::LeNet5 nn = CNN::LeNet5(10);
+//    auto example = all_examples.at(0);
+//    PrintVector(example.expected_output);
+//    for (int i = 0; i < 100; i++) {
+//        nn.trainExample(example);
+//        PrintVector(nn.predict(example.sample));
+//    }
 //    nn.trainExample(example);
 
 //    PrintVector(nn.predict(all_examples.at(0).sample));
