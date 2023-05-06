@@ -4,7 +4,7 @@
 #include "ConvolutionNeuralNetwork.h"
 #include "../layers/convolution/ConvolutionLayer.h"
 #include "../layers/pooling/MaxPoolingLayer.h"
-#include "../layers/dense/PerceptronLayer.h"
+#include "../layers/dense/DenseLayer.h"
 #include "../layers/softmax/SoftmaxLayer.h"
 
 namespace CNN {
@@ -20,16 +20,17 @@ namespace CNN {
 
         void train(const std::vector<Example> &examples) override;
 
+        void trainExample(const Example &example);
+
         ~LeNet5() override;
 
     private:
-        void trainExample(const Example &example);
 
         size_t output_size;
         std::vector<CNNLayer *> cnn_layers;
-        std::vector<perceptron::PerceptronLayer *> dense_layers;
+        std::vector<perceptron::DenseLayer *> dense_layers;
         SoftmaxLayer *softmax_layer;
-        float learning_rate = 0.01;
+        float learning_rate = 0.001;
 
         typedef struct {
             std::vector<Tensor3D> cnn_tensors;

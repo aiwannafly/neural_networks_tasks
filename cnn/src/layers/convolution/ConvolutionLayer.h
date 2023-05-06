@@ -9,12 +9,12 @@
 #include "../../eigen.h"
 
 /*
- * It's a convolution layer. The parameters of a core depend
- * on size of an input tensor, i.e. slices (feature maps) count, so
+ * The parameters of a core depend
+ * on size of an input tensor, i.e. input slices (feature maps) count, so
  * it must be passed through constructor.
  *
  * Core (or a filter) is a tensor of size coreSize * coreSize * inputSlicesCount
- * and one bias. Each core produces one slice (feature map).
+ * and one bias. Each core produces one output slice (feature map).
  */
 namespace CNN {
     class ConvolutionLayer : public CNNLayer {
@@ -24,33 +24,29 @@ namespace CNN {
 
         Tensor3D apply(const Tensor3D &input) override;
 
-        Tensor3D backprop(const Tensor3D &input, const Tensor3D &deltas, float learningRate) override;
+        Tensor3D backprop(const Tensor3D &input, const Tensor3D &deltas, float l_rate) override;
 
         long getCoreSize() const;
 
-        long getCoresCount() const;
+        long getFiltersCount() const;
 
         long getInputMapsCount() const;
 
         Tensor4D *getCores();
 
-        Eigen::VectorXf *getBiases();
+//        Eigen::VectorXf *getBiases();
 
         ~ConvolutionLayer() override;
     private:
 
-        void changeWeights(const Tensor3D &input, const Tensor3D &deltas, float learningRate);
-
-        Tensor4D getRotatedCores() const;
-
-        long coreSize;
+        long f_size;
         long inputMapsCount;
-        long coresCount;
-        std::array<long, 4> coreExtent{};
+        long f_cnt;
+        std::array<long, 4> f_extent{};
         std::array<long, 3> extent{};
 
         // dims of cores:  coresCount * inputMapsCount * coreSize * coreSize
-        Tensor4D *cores;
+        Tensor4D *filters;
         // dims of biases: coresCount
         Eigen::VectorXf *biases;
     };

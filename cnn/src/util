@@ -1,0 +1,126 @@
+    Tensor3D ConvolutionLayer::backprop(const Tensor3D &input, const Tensor3D &deltas, float learningRate) {
+        // here we need to make a **full convolution** between 180 degrees rotated filters and deltas
+        // idea: https://pavisj.medium.com/convolutions-and-backpropagations-46026a8f5d2c#6042
+        Tensor4D coresRotated = getRotatedCores();
+        long expansion = (long) deltas.dimension(ROWS) - 1;
+        long expCoreSize = f_size + 2 * expansion;
+        Tensor4D extFilters = Tensor4D(f_cnt, inputMapsCount, expCoreSize,
+                                       expCoreSize);
+        extFilters.setZero();
+        for (int coreId = 0; coreId < f_cnt; coreId++) {
+            for (int mapId = 0; mapId < inputMapsCount; mapId++) {
+                for (int i = 0; i < f_size; i++) {
+                    for (int j = 0; j < f_size; j++) {
+                        extFilters(coreId, mapId, i + expansion, j + expansion) = coresRotated(coreId,
+                                                                                               mapId, i, j);
+                    }
+                }
+            }
+        }
+        std::array<long, 4> coreOffset4D{0, 0, 0, 0};
+        std::array<long, 4> coreExtent4D{};
+        coreExtent4D[0] = 1;
+        coreExtent4D[MAPS + 1] = (long) extFilters.dimension(MAPS + 1);
+        coreExtent4D[ROWS + 1] = (long) extFilters.dimension(ROWS + 1);
+        coreExtent4D[COLS + 1] = (long) extFilters.dimension(COLS + 1);
+        std::array<long, 3> coreExtendedSizes{};
+        coreExtendedSizes[MAPS] = (long) extFilters.dimension(MAPS + 1);
+        coreExtendedSizes[ROWS] = (long) extFilters.dimension(ROWS + 1);
+        coreExtendedSizes[COLS] = (long) extFilters.dimension(COLS + 1);
+
+        long backPropCoreSize = (long) deltas.dimension(ROWS);
+        long edgeOffset = backPropCoreSize / 2;
+        long evenOffset = 0;
+        if (backPropCoreSize % 2 == 0) {
+            evenOffset = 1;
+        }
+        std::array<long, 3> partExtent{};
+        partExtent[MAPS] = 1;
+        partExtent[ROWS] = backPropCoreSize;
+        partExtent[COLS] = backPropCoreSize;
+        std::array<long, 3> coresOffset{0, 0, 0};
+        std::array<long, 3> deltasOffset{0, 0, 0};
+
+        Tensor3D newDeltas = Tensor3D(input.dimension(MAPS), input.dimension(ROWS), input.dimension(COLS));
+        newDeltas.setZero();
+        for (long coreId = 0; coreId < f_cnt; coreId++) {
+            coreOffset4D[0] = coreId;
+            deltasOffset[MAPS] = coreId;
+            Tensor3D filter = extFilters.slice(coreOffset4D, coreExtent4D).reshape(coreExtendedSizes);
+            Tensor3D deltasPart = deltas.slice(deltasOffset, partExtent);
+            for (long y = edgeOffset; y < expCoreSize - edgeOffset + evenOffset; y++) {
+                coresOffset[ROWS] = y - edgeOffset;
+                for (long x = edgeOffset; x < expCoreSize - edgeOffset + evenOffset; x++) {
+                    coresOffset[COLS] = x - edgeOffset;
+                    for (long mapId = 0; mapId < inputMapsCount; mapId++) {
+                        coresOffset[MAPS] = mapId;
+                        Tensor3D filterPart = filter.slice(coresOffset, partExtent);
+                        Eigen::Tensor<float, 0> scalarProd = (deltasPart * filterPart).sum();
+                        newDeltas(mapId, y - edgeOffset, x - edgeOffset) += scalarProd(0);
+                    }
+                }
+            }
+        }
+//        std::cerr << "here" << std::endl;
+        changeWeights(input, deltas, learningRate);
+//        std::cerr << "here 2" << std::endl;
+        return newDeltas;
+    }
+
+    void ConvolutionLayer::changeWeights(const Tensor3D &input, const Tensor3D &deltas, float learningRate) {
+        long backPropCoreSize = (long) deltas.dimension(ROWS);
+        long edgeOffset = backPropCoreSize / 2;
+        long evenOffset = 0;
+        if (backPropCoreSize % 2 == 0) {
+            evenOffset = 1;
+        }
+        // for the back propagation we will use convolution again, this time with use of the output deltas
+        // idea: https://pavisj.medium.com/convolutions-and-backpropagations-46026a8f5d2c#6042
+        std::array<long, 3> partExtent{};
+        partExtent[MAPS] = 1;
+        partExtent[ROWS] = backPropCoreSize;
+        partExtent[COLS] = backPropCoreSize;
+        std::array<long, 3> inputOffset{0, 0, 0};
+        std::array<long, 3> deltasOffset{0, 0, 0};
+        for (long coreId = 0; coreId < f_cnt; coreId++) {
+            deltasOffset[MAPS] = coreId;
+            Tensor3D deltasPart = deltas.slice(deltasOffset, partExtent);
+            for (long y = edgeOffset; y < input.dimension(ROWS) - edgeOffset + evenOffset; y++) {
+                inputOffset[ROWS] = y - edgeOffset;
+                for (long x = edgeOffset; x < input.dimension(COLS) - edgeOffset + evenOffset; x++) {
+                    inputOffset[COLS] = x - edgeOffset;
+                    for (long mapId = 0; mapId < inputMapsCount; mapId++) {
+                        inputOffset[MAPS] = mapId;
+                        Tensor3D inputMapPart = input.slice(inputOffset, partExtent);
+                        Eigen::Tensor<float, 0> scalarProd = (deltasPart * inputMapPart).sum();
+                        (*filters)(coreId, mapId, y - edgeOffset, x - edgeOffset) += scalarProd(0) * learningRate;
+                    }
+                    Eigen::Tensor<float, 0> deltasSum = deltasPart.sum();
+//                    (*biases)(coreId) += deltasSum(0) * learningRate;
+                }
+            }
+        }
+    }
+
+    Tensor4D ConvolutionLayer::getRotatedCores() const {
+        Tensor4D coresCopy = *filters;
+        for (int coreId = 0; coreId < f_cnt; coreId++) {
+            for (int mapId = 0; mapId < inputMapsCount; mapId++) {
+                for (int i = 0; i < f_size / 2; i++) {
+                    for (int j = 0; j < f_size; j++) {
+                        float temp = coresCopy(coreId, mapId, i, j);
+                        coresCopy(coreId, mapId, i, j) = coresCopy(coreId, mapId, f_size - i - 1, j);
+                        coresCopy(coreId, mapId, f_size - i - 1, j) = temp;
+                    }
+                }
+                for (int i = 0; i < f_size / 2; i++) {
+                    for (int j = 0; j < f_size; j++) {
+                        float temp = coresCopy(coreId, mapId, j, i);
+                        coresCopy(coreId, mapId, j, i) = coresCopy(coreId, mapId, j, f_size - i - 1);
+                        coresCopy(coreId, mapId, j, f_size - i - 1) = temp;
+                    }
+                }
+            }
+        }
+        return coresCopy;
+    }

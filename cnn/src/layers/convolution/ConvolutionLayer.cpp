@@ -1,197 +1,135 @@
 #include <iostream>
 #include "ConvolutionLayer.h"
-#include "../../utils.h"
+#include "../../utils/utils.h"
 
 #include "../../common/functions.h"
 
 namespace CNN {
     ConvolutionLayer::ConvolutionLayer(long coreSize, long coresCount, long inputSlicesCount) {
-        this->coreSize = coreSize;
+        this->f_size = coreSize;
         this->inputMapsCount = inputSlicesCount;
-        this->coresCount = coresCount;
-        this->cores = new Tensor4D(coresCount, inputSlicesCount, coreSize, coreSize);
-        this->cores->setRandom();
+        this->f_cnt = coresCount;
+        this->filters = new Tensor4D(coresCount, inputSlicesCount, coreSize, coreSize);
+        this->filters->setRandom();
+        for (int i = 0; i < coresCount; i++) {
+            for (int j = 0; j < inputSlicesCount; j++) {
+                for (int k = 0; k < coreSize; k++) {
+                    for (int t = 0; t < coreSize; t++) {
+                        (*filters)(i, j, k, t) *= 2;
+                        (*filters)(i, j, k, t) -= 1;
+//                        (*filters)(i, j, k, t) -= 0.5;
+//                        (*filters)(i, j, k, t) *= 2;
+                    }
+                }
+            }
+        }
         this->biases = new Eigen::VectorXf(coresCount);
         this->biases->setRandom();
-        extent[SLICES] = inputMapsCount;
+        extent[MAPS] = inputMapsCount;
         extent[ROWS] = coreSize;
         extent[COLS] = coreSize;
-        coreExtent[0] = 1;
-        coreExtent[SLICES + 1] = inputMapsCount;
-        coreExtent[ROWS + 1] = coreSize;
-        coreExtent[COLS + 1] = coreSize;
+        f_extent[0] = 1;
+        f_extent[MAPS + 1] = inputMapsCount;
+        f_extent[ROWS + 1] = coreSize;
+        f_extent[COLS + 1] = coreSize;
     }
 
     ConvolutionLayer::~ConvolutionLayer() {
-        delete cores;
+        delete filters;
         delete biases;
     }
 
     long ConvolutionLayer::getCoreSize() const {
-        return coreSize;
+        return f_size;
     }
 
     Tensor4D *ConvolutionLayer::getCores() {
-        return cores;
+        return filters;
     }
 
     Tensor3D ConvolutionLayer::apply(const Tensor3D &input) {
-        long edgeOffset = coreSize / 2;
-        assert(2 * edgeOffset <= input.dimension(ROWS));
-        assert(2 * edgeOffset <= input.dimension(COLS));
-        assert(input.dimension(SLICES) == inputMapsCount);
+        long edge = f_size / 2;
+        assert(2 * edge <= input.dimension(ROWS));
+        assert(2 * edge <= input.dimension(COLS));
+        assert(input.dimension(MAPS) == inputMapsCount);
         std::array<long, 3> offset = {0, 0, 0};
-        std::array<long, 4> coreOffset = {0, 0, 0, 0};
+        std::array<long, 4> f_offset = {0, 0, 0, 0};
 
-        long resHeight = MAX(input.dimension(ROWS) - 2 * edgeOffset, 1);
-        long resWidth = MAX(input.dimension(COLS) - 2 * edgeOffset, 1);
-        Tensor3D result(coresCount, resHeight, resWidth);
-        std::vector<Tensor3D > coresWeights;
-        for (long coreId = 0; coreId < coresCount; coreId++) {
-            coreOffset[0] = coreId;
-            Tensor3D coreWeights = (*cores).slice(coreOffset, coreExtent).reshape(extent);
-            coresWeights.push_back(coreWeights);
+        long outHeight = MAX(input.dimension(ROWS) - 2 * edge, 1);
+        long outWidth = MAX(input.dimension(COLS) - 2 * edge, 1);
+        Tensor3D output(f_cnt, outHeight, outWidth);
+        long even = 0;
+        if (f_size % 2 == 0) {
+            even = 1;
         }
-        Eigen::Tensor<float, 0> scalarProd;
-        Tensor3D currentPart;
-        long evenOffset = 0;
-        if (coreSize % 2 == 0) {
-            evenOffset = 1;
-        }
-        for (long y = edgeOffset; y < input.dimension(ROWS) - edgeOffset + evenOffset; y++) {
-            offset[ROWS] = y - edgeOffset;
-            for (long x = edgeOffset; x < input.dimension(COLS) - edgeOffset + evenOffset; x++) {
-                offset[COLS] = x - edgeOffset;
-                currentPart = input.slice(offset, extent);
-                for (long coreId = 0; coreId < coresCount; coreId++) {
-                    float bias = (*biases)(coreId);
-                    scalarProd = (currentPart * coresWeights.at(coreId)).sum();
-                    result(coreId, y - edgeOffset, x - edgeOffset) = ReLU(scalarProd(0) + bias);
+        for (long curr_f = 0; curr_f < f_cnt; curr_f++) {
+            float bias = (*biases)(curr_f);
+            f_offset[0] = curr_f;
+            Tensor3D filter = (*filters).slice(f_offset, f_extent).reshape(extent);
+            for (long y = edge; y < input.dimension(ROWS) - edge + even; y++) {
+                offset[ROWS] = y - edge;
+                for (long x = edge; x < input.dimension(COLS) - edge + even; x++) {
+                    offset[COLS] = x - edge;
+                    Tensor3D currentPart = input.slice(offset, extent);
+                    Eigen::Tensor<float, 0> scalarProd = (currentPart * filter).sum();
+                    output(curr_f, y - edge, x - edge) = ReLU(scalarProd(0) + bias);
                 }
             }
         }
-        return result;
+        return output;
     }
 
-    long ConvolutionLayer::getCoresCount() const {
-        return coresCount;
+    long ConvolutionLayer::getFiltersCount() const {
+        return f_cnt;
     }
 
     long ConvolutionLayer::getInputMapsCount() const {
         return inputMapsCount;
     }
 
-    Eigen::VectorXf *ConvolutionLayer::getBiases() {
-        return biases;
-    }
-
-    Tensor3D ConvolutionLayer::backprop(const Tensor3D &input, const Tensor3D &deltas, float learningRate) {
-        Tensor3D newDeltas = Tensor3D(input.dimension(SLICES), input.dimension(ROWS), input.dimension(COLS));
-        newDeltas.setZero();
-        // here we need to make a **full convolution** between 180 degrees rotated filters and deltas
-        // idea: https://pavisj.medium.com/convolutions-and-backpropagations-46026a8f5d2c#6042
-        Tensor4D coresRotated = getRotatedCores();
-        long expansion = (long) deltas.dimension(ROWS) - 1;
-        Tensor4D extendedCores = Tensor4D(coresCount, inputMapsCount, coreSize + 2 * expansion,
-                                          coreSize + 2 * expansion);
-        extendedCores.setZero();
-        for (int coreId = 0; coreId < coresCount; coreId++) {
-            for (int mapId = 0; mapId < inputMapsCount; mapId++) {
-                for (int i = 0; i < coreSize; i++) {
-                    for (int j = 0; j < coreSize; j++) {
-                        extendedCores(coreId, mapId, i + expansion, j + expansion) = coresRotated(coreId,
-                                                                                                  mapId, i, j);
+    Tensor3D ConvolutionLayer::backprop(const Tensor3D &input, const Tensor3D &deltas, float l_rate) {
+        std::array<long, 3> offset = {0, 0, 0};
+        std::array<long, 4> f_offset = {0, 0, 0, 0};
+        Tensor3D nextDeltas = Tensor3D(input.dimension(MAPS), input.dimension(ROWS), input.dimension(COLS));
+        nextDeltas.setZero();
+        for (int curr_f = 0; curr_f < f_cnt; curr_f++) {
+            f_offset[0] = curr_f;
+            Tensor3D filter = (*filters).slice(f_offset, f_extent).reshape(extent);
+            int curr_y = 0;
+            int out_y = 0;
+            int curr_x = 0;
+            int out_x = 0;
+            while (curr_y + f_size <= input.dimension(ROWS)) {
+                offset[ROWS] = curr_y;
+                while (curr_x + f_size <= input.dimension(COLS)) {
+                    offset[COLS] = curr_x;
+                    float delta = deltas(curr_f, out_y, out_x);
+                    for (int i = 0; i < input.dimension(MAPS); i++) {
+                        for (int j = 0; j < f_size; j++) {
+                            for (int k = 0; k < f_size; k++) {
+                                (*filters)(curr_f, i, j, k) += delta * input(i, curr_y + j, curr_x + k) * l_rate;
+                            }
+                        }
                     }
+                    for (int i = 0; i < input.dimension(MAPS); i++) {
+                        for (int j = 0; j < f_size; j++) {
+                            for (int k = 0; k < f_size; k++) {
+                                nextDeltas(i, curr_y + j, curr_x + k) += delta * filter(i, j, k);
+                            }
+                        }
+                    }
+                    curr_x += 1;
+                    out_x += 1;
+                }
+                curr_y += 1;
+                out_y += 1;
+            }
+            for (int i = 0; i < deltas.dimension(ROWS); i++) {
+                for (int j = 0; j < deltas.dimension(COLS); j++) {
+                    (*biases)(curr_f) += deltas(curr_f, i, j);
                 }
             }
         }
-        long backPropCoreSize = (long) deltas.dimension(ROWS);
-        long edgeOffset = backPropCoreSize / 2;
-        long evenOffset = 0;
-        if (backPropCoreSize % 2 == 0) {
-            evenOffset = 1;
-        }
-        std::array<long, 3> partExtent{};
-        partExtent[SLICES] = 1;
-        partExtent[ROWS] = backPropCoreSize;
-        partExtent[COLS] = backPropCoreSize;
-        std::array<long, 3> coresOffset{0, 0, 0};
-        std::array<long, 3> deltasOffset{0, 0, 0};
-        for (long y = edgeOffset; y < coreSize - edgeOffset + evenOffset; y++) {
-            coresOffset[ROWS] = y - edgeOffset;
-            for (long x = edgeOffset; x < coreSize - edgeOffset + evenOffset; x++) {
-                coresOffset[COLS] = x - edgeOffset;
-                for (long coreId = 0; coreId < coresCount; coreId++) {
-                    deltasOffset[SLICES] = coreId;
-                    Tensor3D deltasOfCore = deltas.slice(deltasOffset, partExtent);
-                    for (long mapId = 0; mapId < inputMapsCount; mapId++) {
-                        coresOffset[SLICES] = mapId;
-                        Tensor3D coresPart = input.slice(coresOffset, partExtent);
-                        Eigen::Tensor<float, 0> scalarProd = (deltasOfCore * coresPart).sum();
-                        newDeltas(mapId, y - edgeOffset, x - edgeOffset) += scalarProd(0);
-                    }
-                }
-            }
-        }
-        changeWeights(input, deltas, learningRate);
-        return newDeltas;
-    }
-
-    void ConvolutionLayer::changeWeights(const Tensor3D &input, const Tensor3D &deltas, float learningRate) {
-        long backPropCoreSize = (long) deltas.dimension(ROWS);
-        long edgeOffset = backPropCoreSize / 2;
-        long evenOffset = 0;
-        if (backPropCoreSize % 2 == 0) {
-            evenOffset = 1;
-        }
-        // for the back propagation we will use convolution again, this time with use of the output deltas
-        // idea: https://pavisj.medium.com/convolutions-and-backpropagations-46026a8f5d2c#6042
-        std::array<long, 3> partExtent{};
-        partExtent[SLICES] = 1;
-        partExtent[ROWS] = backPropCoreSize;
-        partExtent[COLS] = backPropCoreSize;
-        std::array<long, 3> inputOffset{0, 0, 0};
-        std::array<long, 3> deltasOffset{0, 0, 0};
-        for (long y = edgeOffset; y < input.dimension(ROWS) - edgeOffset + evenOffset; y++) {
-            inputOffset[ROWS] = y - edgeOffset;
-            for (long x = edgeOffset; x < input.dimension(COLS) - edgeOffset + evenOffset; x++) {
-                inputOffset[COLS] = x - edgeOffset;
-                for (long coreId = 0; coreId < coresCount; coreId++) {
-                    deltasOffset[SLICES] = coreId;
-                    Tensor3D deltasOfCore = deltas.slice(deltasOffset, partExtent);
-                    for (long mapId = 0; mapId < inputMapsCount; mapId++) {
-                        inputOffset[SLICES] = mapId;
-                        Tensor3D inputMapPart = input.slice(inputOffset, partExtent);
-                        Eigen::Tensor<float, 0> scalarProd = (deltasOfCore * inputMapPart).sum();
-                        (*cores)(coreId, mapId, y - edgeOffset, x - edgeOffset) += scalarProd(0) * learningRate;
-                    }
-                    Eigen::Tensor<float, 0> deltasSum = deltasOfCore.sum();
-                    (*biases)(coreId) += deltasSum(0) * learningRate;
-                }
-            }
-        }
-    }
-
-    Tensor4D ConvolutionLayer::getRotatedCores() const {
-        Tensor4D coresCopy = *cores;
-        for (int coreId = 0; coreId < coresCount; coreId++) {
-            for (int mapId = 0; mapId < inputMapsCount; mapId++) {
-                for (int i = 0; i < coreSize / 2; i++) {
-                    for (int j = 0; j < coreSize; j++) {
-                        float temp = coresCopy(coreId, mapId, i, j);
-                        coresCopy(coreId, mapId, i, j) = coresCopy(coreId, mapId, coreSize - i - 1, j);
-                        coresCopy(coreId, mapId, coreSize - i - 1, j) = temp;
-                    }
-                }
-                for (int i = 0; i < coreSize / 2; i++) {
-                    for (int j = 0; j < coreSize; j++) {
-                        float temp = coresCopy(coreId, mapId, j, i);
-                        coresCopy(coreId, mapId, j, i) = coresCopy(coreId, mapId, j, coreSize - i - 1);
-                        coresCopy(coreId, mapId, j, coreSize - i - 1) = temp;
-                    }
-                }
-            }
-        }
-        return coresCopy;
+        return nextDeltas;
     }
 }

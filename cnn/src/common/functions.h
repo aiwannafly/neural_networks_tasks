@@ -3,12 +3,14 @@
 
 #include "../eigen.h"
 
-float sigmoid(float x, float param);
+float sigmoid(float x);
 
 // from [tanh(a), tanh(b), ...] makes [tanh'(a), tanh'(b), ...]
 Eigen::VectorXf tanh_deriv(Eigen::VectorXf tanh_vector);
 
 Eigen::VectorXf sigmoid_deriv(Eigen::VectorXf sigmoid_vector);
+
+Eigen::VectorXf ReLU_deriv(Eigen::VectorXf relu_vector);
 
 float ReLU(float x);
 

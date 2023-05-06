@@ -2,7 +2,7 @@
 #define CNN_MAXPOOLINGLAYER_H
 
 #include "PoolingLayer.h"
-#include "../../utils.h"
+#include "../../utils/utils.h"
 
 namespace CNN {
     class MaxPoolingLayer : public PoolingLayer {
@@ -14,7 +14,8 @@ namespace CNN {
         Tensor3D apply(const Tensor3D &input) override;
 
     private:
-        LongsTensor3D indicators;
+        LongsTensor3D rowIndicators;
+        LongsTensor3D colIndicators;
 
         float getPool(const Tensor3D &input, const std::array<long, 3> &offset) override;
     };

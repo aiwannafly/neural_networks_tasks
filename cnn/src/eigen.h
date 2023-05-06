@@ -10,8 +10,17 @@
 #define Tensor4D Eigen::Tensor<float, 4>
 #define LongsTensor3D Eigen::Tensor<int, 3>
 
-#define SLICES (0)
+#define MAPS (0)
 #define ROWS (1)
 #define COLS (2)
+#define PRINT_FORWARD (0)
+#define PRINT_BACKWARD (0)
+#define SIGMOID_PARAM (0.1)
+
+void PrintTensor(const Tensor3D &tensor);
+
+void PrintTensorDims(const Tensor3D &tensor);
+
+void PrintVector(const Eigen::VectorXf &vector);
 
 #endif //CNN_EIGEN_H

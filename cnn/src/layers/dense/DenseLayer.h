@@ -4,11 +4,11 @@
 #include "../../eigen.h"
 
 namespace perceptron {
-    class PerceptronLayer {
+    class DenseLayer {
     public:
-        PerceptronLayer(size_t prev_layer_size, size_t current_layer_size);
+        DenseLayer(size_t prev_layer_size, size_t current_layer_size);
 
-        ~PerceptronLayer();
+        ~DenseLayer();
 
         size_t getInputSize() const;
 
