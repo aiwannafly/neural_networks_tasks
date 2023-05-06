@@ -81,24 +81,33 @@ namespace CNN {
             while (x + f_size <= input.dimension(COLS)) {
                 offset[COLS] = x;
                 Vector prev_deltas = getTensor3DValue(output_deltas, x, y);
+                Vector input_slice = toVector(input.slice(offset, extent).reshape(extent));
 
                 // scoring next deltas
-                Vector input_act_deriv = ReLU_deriv(toVector(input.slice(offset, extent).reshape(extent)));
+                Vector input_act_deriv = ReLU_deriv(input_slice);
                 Vector curr_deltas = Vector(slice_size);
-                for (int j = 0; j < slice_size; j++) {
-                    Vector weights_col = weights.col(j);
+                for (int i = 0; i < slice_size; i++) {
+                    Vector weights_col = weights.col(i);
                     float scalar_prod = weights_col.dot(prev_deltas);
-                    curr_deltas(j) = scalar_prod * input_act_deriv(j);
+                    curr_deltas(i) = scalar_prod * input_act_deriv(i);
                 }
                 Tensor3D tensorDeltas = toTensor3D(curr_deltas, input_maps, f_size, f_size);
                 addTensorPart(&nextDeltas, x, y, tensorDeltas);
 
                 // scoring filter deltas
-
+                for (int j = 0; j < f_cnt; j++) {
+                    float common_err = l_rate * prev_deltas(j);
+                    for (int k = 0; k < slice_size; k++) {
+                        float err = common_err * input_slice(k);
+                        weights(j, k) += err;
+                    }
+                    (*biases)(j) += common_err;
+                }
                 x++;
             }
             y++;
         }
+        *filters = toTensor4D(weights, f_cnt, input_maps, f_size, f_size);
         return nextDeltas;
     }
 
