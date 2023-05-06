@@ -41,7 +41,7 @@ namespace CNN {
             PrintTensor3D(input);
         }
         for (auto *layer: cnn_layers) {
-            current_cnn = layer->apply(current_cnn);
+            current_cnn = layer->forward(current_cnn);
             if (PRINT_FORWARD) {
                 std::cout << "NEXT: ==================================" << std::endl;
                 PrintTensor3D(current_cnn);
@@ -99,7 +99,7 @@ namespace CNN {
         full_output.cnn_tensors.push_back(input);
         Tensor3D current_cnn = input;
         for (auto *layer: cnn_layers) {
-            current_cnn = layer->apply(current_cnn);
+            current_cnn = layer->forward(current_cnn);
             full_output.cnn_tensors.push_back(current_cnn);
         }
         assert(current_cnn.dimension(ROWS) == 1);

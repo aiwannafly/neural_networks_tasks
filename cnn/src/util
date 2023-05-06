@@ -4,11 +4,11 @@
         Tensor4D coresRotated = getRotatedCores();
         long expansion = (long) deltas.dimension(ROWS) - 1;
         long expCoreSize = f_size + 2 * expansion;
-        Tensor4D extFilters = Tensor4D(f_cnt, inputMapsCount, expCoreSize,
+        Tensor4D extFilters = Tensor4D(f_cnt, input_maps, expCoreSize,
                                        expCoreSize);
         extFilters.setZero();
         for (int coreId = 0; coreId < f_cnt; coreId++) {
-            for (int mapId = 0; mapId < inputMapsCount; mapId++) {
+            for (int mapId = 0; mapId < input_maps; mapId++) {
                 for (int i = 0; i < f_size; i++) {
                     for (int j = 0; j < f_size; j++) {
                         extFilters(coreId, mapId, i + expansion, j + expansion) = coresRotated(coreId,
@@ -52,7 +52,7 @@
                 coresOffset[ROWS] = y - edgeOffset;
                 for (long x = edgeOffset; x < expCoreSize - edgeOffset + evenOffset; x++) {
                     coresOffset[COLS] = x - edgeOffset;
-                    for (long mapId = 0; mapId < inputMapsCount; mapId++) {
+                    for (long mapId = 0; mapId < input_maps; mapId++) {
                         coresOffset[MAPS] = mapId;
                         Tensor3D filterPart = filter.slice(coresOffset, partExtent);
                         Eigen::Tensor<float, 0> scalarProd = (deltasPart * filterPart).sum();
@@ -89,7 +89,7 @@
                 inputOffset[ROWS] = y - edgeOffset;
                 for (long x = edgeOffset; x < input.dimension(COLS) - edgeOffset + evenOffset; x++) {
                     inputOffset[COLS] = x - edgeOffset;
-                    for (long mapId = 0; mapId < inputMapsCount; mapId++) {
+                    for (long mapId = 0; mapId < input_maps; mapId++) {
                         inputOffset[MAPS] = mapId;
                         Tensor3D inputMapPart = input.slice(inputOffset, partExtent);
                         Eigen::Tensor<float, 0> scalarProd = (deltasPart * inputMapPart).sum();
@@ -105,7 +105,7 @@
     Tensor4D ConvolutionLayer::getRotatedCores() const {
         Tensor4D coresCopy = *filters;
         for (int coreId = 0; coreId < f_cnt; coreId++) {
-            for (int mapId = 0; mapId < inputMapsCount; mapId++) {
+            for (int mapId = 0; mapId < input_maps; mapId++) {
                 for (int i = 0; i < f_size / 2; i++) {
                     for (int j = 0; j < f_size; j++) {
                         float temp = coresCopy(coreId, mapId, i, j);

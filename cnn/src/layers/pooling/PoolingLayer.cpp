@@ -9,7 +9,7 @@ namespace CNN {
         extent[COLS] = size;
     }
 
-    Tensor3D PoolingLayer::apply(const Tensor3D &input) {
+    Tensor3D PoolingLayer::forward(const Tensor3D &input) {
         assert(input.dimension(ROWS) % size == 0);
         assert(input.dimension(COLS) % size == 0);
         Tensor3D pooled(input.dimension(MAPS), input.dimension(ROWS) / size,

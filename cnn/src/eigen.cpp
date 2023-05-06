@@ -2,6 +2,8 @@
 
 #include <iostream>
 
+#include "common/functions.h"
+
 void PrintTensor3D(const Tensor3D &tensor) {
     for (int l = 0; l < tensor.dimension(MAPS); l++) {
         std::cout << "> slice " << l << std::endl;
@@ -43,6 +45,41 @@ Eigen::VectorXf toVector(const Tensor3D &input) {
         }
     }
     return res;
+}
+
+void setTensor3DValue(Tensor3D *tensor, int x, int y, const Vector &value) {
+    int maps = (int) tensor->dimension(0);
+    assert(maps == value.size());
+    for (int i = 0; i < maps; i++) {
+        (*tensor)(i, y, x) = value(i);
+    }
+}
+
+Vector getTensor3DValue(const Tensor3D &tensor, int x, int y) {
+    int maps = (int) tensor.dimension(0);
+    Vector values = Vector(maps);
+    for (int i = 0; i < maps; i++) {
+        values(i) = tensor(i, y, x);
+    }
+    return values;
+}
+
+void addTensorPart(Tensor3D *dest, int x0, int y0, const Tensor3D &value) {
+    assert(dest->dimension(MAPS) == value.dimension(MAPS));
+    for (int y = y0; y < y0 + value.dimension(ROWS); y++) {
+        for (int x = x0; x < x0 + value.dimension(COLS); x++) {
+            for (int map = 0; map < value.dimension(MAPS); map++) {
+                (*dest)(map, y, x) += value(map, y - y0, x - x0);
+            }
+        }
+    }
+}
+
+Vector applyReLU(Vector input) {
+    for (int i = 0; i < input.size(); i++) {
+        input(i) = ReLU(input(i));
+    }
+    return input;
 }
 
 Tensor3D toTensor3D(const Eigen::VectorXf &input, int maps, int cols, int rows) {

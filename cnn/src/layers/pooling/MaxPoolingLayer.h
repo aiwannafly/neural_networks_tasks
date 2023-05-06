@@ -11,7 +11,7 @@ namespace CNN {
 
         Tensor3D backprop(const Tensor3D &input, const Tensor3D &deltas, float learningRate) override;
 
-        Tensor3D apply(const Tensor3D &input) override;
+        Tensor3D forward(const Tensor3D &input) override;
 
     private:
         LongsTensor3D rowIndicators;

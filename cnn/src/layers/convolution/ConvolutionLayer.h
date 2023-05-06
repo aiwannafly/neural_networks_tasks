@@ -20,11 +20,11 @@ namespace CNN {
     class ConvolutionLayer : public CNNLayer {
     public:
 
-        ConvolutionLayer(long coreSize, long coresCount, long inputSlicesCount);
+        ConvolutionLayer(long f_size, long f_cnt, long input_maps);
 
-        Tensor3D apply(const Tensor3D &input) override;
+        Tensor3D forward(const Tensor3D &input) override;
 
-        Tensor3D backprop(const Tensor3D &input, const Tensor3D &deltas, float l_rate) override;
+        Tensor3D backprop(const Tensor3D &input, const Tensor3D &output_deltas, float l_rate) override;
 
         long getCoreSize() const;
 
@@ -40,9 +40,8 @@ namespace CNN {
     private:
 
         long f_size;
-        long inputMapsCount;
+        long input_maps;
         long f_cnt;
-        std::array<long, 4> f_extent{};
         std::array<long, 3> extent{};
 
         // dims of cores:  coresCount * inputMapsCount * coreSize * coreSize

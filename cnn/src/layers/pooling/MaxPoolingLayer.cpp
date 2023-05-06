@@ -16,14 +16,14 @@ namespace CNN {
         return new_deltas;
     }
 
-    Tensor3D MaxPoolingLayer::apply(const Eigen::Tensor<float, 3> &input) {
+    Tensor3D MaxPoolingLayer::forward(const Eigen::Tensor<float, 3> &input) {
         assert(input.dimension(ROWS) % size == 0);
         assert(input.dimension(COLS) % size == 0);
         rowIndicators = LongsTensor3D(input.dimension(MAPS), input.dimension(ROWS) / size,
                                    input.dimension(COLS) / size);
         colIndicators = LongsTensor3D(input.dimension(MAPS), input.dimension(ROWS) / size,
                                       input.dimension(COLS) / size);
-        return PoolingLayer::apply(input);
+        return PoolingLayer::forward(input);
     }
 
     float MaxPoolingLayer::getPool(const Tensor3D &input, const std::array<long, 3> &offset) {

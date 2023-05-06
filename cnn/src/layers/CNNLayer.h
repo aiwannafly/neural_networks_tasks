@@ -6,7 +6,7 @@
 namespace CNN {
     class CNNLayer {
     public:
-        virtual Tensor3D apply(const Tensor3D &input) = 0;
+        virtual Tensor3D forward(const Tensor3D &input) = 0;
 
         /*
          * the layer should use the deltas to correct weights and biases,
