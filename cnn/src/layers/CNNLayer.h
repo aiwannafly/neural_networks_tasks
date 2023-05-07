@@ -15,6 +15,10 @@ namespace CNN {
          */
         virtual Tensor3D backprop(const Tensor3D &input, const Tensor3D &deltas, float learningRate) = 0;
 
+        virtual Matrix weightsTemplate() const = 0;
+
+        virtual void applyWeightsDeltas(const Matrix &w_deltas) = 0;
+
         virtual ~CNNLayer() = default;
     };
 }

@@ -12,6 +12,10 @@ namespace CNN {
 
         Tensor3D backprop(const Tensor3D &input, const Tensor3D &deltas, float learningRate) override = 0;
 
+        Matrix weightsTemplate() const override;
+
+        void applyWeightsDeltas(const Matrix &w_deltas) override {};
+
         ~PoolingLayer() override = default;
 
     protected:

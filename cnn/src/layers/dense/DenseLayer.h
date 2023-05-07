@@ -19,6 +19,10 @@ namespace perceptron {
 
         Vector backprop(const Vector &input, const Vector& prev_deltas, float l_rate);
 
+        Matrix weightsTemplate() const;
+
+        void applyWightsDeltas(const Matrix &w_deltas);
+
         static Vector act_deriv(const Vector &output);
 
     private:

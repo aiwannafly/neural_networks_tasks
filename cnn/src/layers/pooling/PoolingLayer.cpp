@@ -28,4 +28,8 @@ namespace CNN {
         }
         return pooled;
     }
+
+    Matrix PoolingLayer::weightsTemplate() const {
+        return {};
+    }
 }

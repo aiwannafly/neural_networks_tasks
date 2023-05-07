@@ -39,6 +39,8 @@ namespace CNN {
     }
 
     void LeNet5::train(const std::vector<Example> &examples) {
+        std::vector<Matrix> weightsDeltas;
+
         for (const auto &e: examples) {
             trainExample(e);
         }

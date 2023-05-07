@@ -61,4 +61,14 @@ namespace perceptron {
         }
         return next_deltas;
     }
+
+    Matrix DenseLayer::weightsTemplate() const {
+        Matrix t = *weights;
+        t.setZero();
+        return t;
+    }
+
+    void DenseLayer::applyWightsDeltas(const Matrix &w_deltas) {
+        (*weights) += w_deltas;
+    }
 }

@@ -127,4 +127,16 @@ namespace CNN {
     long ConvolutionLayer::getInputMapsCount() const {
         return input_maps;
     }
+
+    Matrix ConvolutionLayer::weightsTemplate() const {
+        Matrix t = AsMatrix(*filters);
+        t.setZero();
+        return t;
+    }
+
+    void ConvolutionLayer::applyWeightsDeltas(const Matrix &w_deltas) {
+        Matrix t = AsMatrix(*filters);
+        t += w_deltas;
+        *filters = AsTensor4D(t, f_cnt, input_maps, f_size, f_size);
+    }
 }
