@@ -41,8 +41,14 @@ namespace CNN {
     void LeNet5::train(const std::vector<Example> &examples) {
         std::vector<Matrix> weightsDeltas;
 
+        int count = 0;
+        int total = (int) examples.size();
         for (const auto &e: examples) {
             trainExample(e);
+            count++;
+            if (count % 1000 == 0) {
+                LOG("trained " << count << "/" << total);
+            }
         }
     }
 

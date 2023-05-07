@@ -57,12 +57,7 @@ std::vector<CNN::Example> ParseMNISTCSV(const std::string &file_name) {
     std::vector<std::string> cols = Split(col_names_raw, delimiter);
     std::vector<CNN::Example> examples;
     char *s;
-    int count = 0;
     while ((s = in.next_line()) != nullptr) {
-        count++;
-        if (count > 10000) {
-            break;
-        }
         std::vector<float> nums = MakeFloatArr(Split(s, delimiter));
         if (nums.size() != cols.size()) {
             throw std::invalid_argument("labels count != numbers in row count");
@@ -84,48 +79,65 @@ std::vector<CNN::Example> ParseMNISTCSV(const std::string &file_name) {
     return examples;
 }
 
+struct ClassificationScore {
+    int TP = 0;
+    int FP = 0;
+    int TN = 0;
+    int FN = 0;
+};
+
 int main(int argc, char *argv[]) {
     if (argc != 1 + 1 + 1) {
         std::cerr << "usage: ./cnn <mnist-train.csv> <mnist-test.csv>" << std::endl;
         return -1;
     }
-    std::vector<CNN::Example> all_examples = ParseMNISTCSV(argv[1]);
-    CNN::LeNet5 nn = CNN::LeNet5(10);
-
-//    auto example = all_examples.at(0);
-//    PrintVector(example.expected_output);
-//    for (int i = 0; i < 100; i++) {
-//        // 14 - loss: 2.72768 with no cnn backprop
-//        // 14 - loss: 2.48222 with just 1 layer cnn backprop (w -= delta)
-//        // 14 - loss: 2.34262 with all cnn layers backprop (w -= delta)
-//        // 14 - loss: 2.34262 with all cnn layers backprop (w += delta and inverse first delta)
-//        nn.trainExample(example);
-//        auto predicted = nn.predict(example.sample);
-//        std::cout << i << " - loss: " << CrossEntropy(example.expected_output, predicted) << std::endl;
-//    }
-//    PrintVector(nn.predict(example.sample));
-//    PrintVector(example.expected_output);
+    int classes_count = 10;
+    std::vector<CNN::Example> train_examples = ParseMNISTCSV(argv[1]);
+    std::vector<CNN::Example> test_examples = ParseMNISTCSV(argv[2]);
+    CNN::LeNet5 nn = CNN::LeNet5(classes_count);
 
     auto start = std::chrono::steady_clock::now();
     int lim = 5;
-    nn.setLearningRate(1 / ((float) lim * (float) all_examples.size()));
+    nn.setLearningRate(1 / ((float) lim * (float) train_examples.size()));
+
     for (int i = 0; i < lim; i++) {
-        nn.train(all_examples);
-        LOG("Epoch " << i << " / " << lim);
+        nn.train(train_examples);
+        LOG("Epoch " << i + 1 << " / " << lim << " passed");
+
+        int guessed = 0;
+        auto* scores = new ClassificationScore[classes_count];
+
+        for (const auto &example: test_examples) {
+            int expected = VectorToLabel(example.expected_output);
+            auto p = nn.predict(example.sample);
+            int predicted = VectorToLabel(p);
+            if (expected == predicted) {
+                guessed++;
+                scores[expected].TP++;
+            } else {
+                scores[predicted].FP++;
+                scores[expected].FN++;
+            }
+            for (int c = 0; c < classes_count; c++) {
+                if (c == expected || c == predicted) {
+                    continue;
+                }
+                scores[c].TN++;
+            }
+        }
+        for (int c = 0; c < classes_count; c++) {
+            LOG("c = " << c);
+            LOG("TP = " << scores[c].TP);
+            LOG("FP = " << scores[c].FP);
+            LOG("TN = " << scores[c].TN);
+            LOG("FN = " << scores[c].FN);
+        }
+        LOG("acc = " << (float) guessed / test_examples.size());
+        delete[] scores;
     }
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed_seconds = end-start;
     LOG("train duration: " << elapsed_seconds.count());
 
-    int guessed = 0;
-    for (const auto &example: all_examples) {
-        int expected = VectorToLabel(example.expected_output);
-        auto p = nn.predict(example.sample);
-        int predicted = VectorToLabel(p);
-        if (expected == predicted) {
-            guessed++;
-        }
-    }
-    LOG("Accuracy: " << (float) guessed / all_examples.size());
     return 0;
 }
