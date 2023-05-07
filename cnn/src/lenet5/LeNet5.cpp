@@ -110,4 +110,8 @@ namespace CNN {
         full_output.softmax_output = CNN::SoftmaxLayer::forward(current_dense);
         return full_output;
     }
+
+    void LeNet5::setLearningRate(float value) {
+        l_rate = value;
+    }
 }

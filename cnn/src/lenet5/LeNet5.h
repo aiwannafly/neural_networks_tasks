@@ -22,6 +22,8 @@ namespace CNN {
 
         void trainExample(const Example &example);
 
+        void setLearningRate(float value);
+
         ~LeNet5() override;
 
     private:

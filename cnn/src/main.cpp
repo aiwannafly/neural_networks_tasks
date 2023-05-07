@@ -41,7 +41,7 @@ Vector LabelToVector(int label) {
 int VectorToLabel(Vector vector) {
     float max = vector(0);
     int id = 0;
-    for (int i = 1; i < 10; i++) {
+    for (int i = 1; i < vector.size(); i++) {
         if (vector(i) > max) {
             max = vector(i);
             id = i;
@@ -60,7 +60,7 @@ std::vector<CNN::Example> ParseMNISTCSV(const std::string &file_name) {
     int count = 0;
     while ((s = in.next_line()) != nullptr) {
         count++;
-        if (count > 10) {
+        if (count > 10000) {
             break;
         }
         std::vector<float> nums = MakeFloatArr(Split(s, delimiter));
@@ -75,7 +75,7 @@ std::vector<CNN::Example> ParseMNISTCSV(const std::string &file_name) {
             for (int j = 0; j < IMG_SIZE; j++) {
                 float numVal = nums.at(1 + j + i * IMG_SIZE) / 255;
                 numVal -= 0.5;
-                numVal /= 2;
+                numVal /= 4;
                 example.sample(0, i, j) = numVal;
             }
         }
@@ -106,15 +106,26 @@ int main(int argc, char *argv[]) {
 //    PrintVector(nn.predict(example.sample));
 //    PrintVector(example.expected_output);
 
-    int lim = 10;
+    auto start = std::chrono::steady_clock::now();
+    int lim = 5;
+    nn.setLearningRate(1 / ((float) lim * (float) all_examples.size()));
     for (int i = 0; i < lim; i++) {
         nn.train(all_examples);
-        std::cout << i << "/" << lim << std::endl;
+        LOG("Epoch " << i << " / " << lim);
     }
+    auto end = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end-start;
+    LOG("train duration: " << elapsed_seconds.count());
+
+    int guessed = 0;
     for (const auto &example: all_examples) {
-        PrintVector(example.expected_output);
-        PrintVector(nn.predict(example.sample));
-        std::cout << std::endl;
+        int expected = VectorToLabel(example.expected_output);
+        auto p = nn.predict(example.sample);
+        int predicted = VectorToLabel(p);
+        if (expected == predicted) {
+            guessed++;
+        }
     }
+    LOG("Accuracy: " << (float) guessed / all_examples.size());
     return 0;
 }
