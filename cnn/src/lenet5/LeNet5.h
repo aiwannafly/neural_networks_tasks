@@ -16,7 +16,7 @@ namespace CNN {
     public:
         explicit LeNet5(size_t output_size);
 
-        Eigen::VectorXf predict(const Tensor3D &input) override;
+        Vector predict(const Tensor3D &input) override;
 
         void train(const std::vector<Example> &examples) override;
 
@@ -30,17 +30,15 @@ namespace CNN {
         std::vector<CNNLayer *> cnn_layers;
         std::vector<perceptron::DenseLayer *> dense_layers;
         SoftmaxLayer *softmax_layer;
-        float learning_rate = 0.001;
+        float l_rate = 0.001;
 
         typedef struct {
             std::vector<Tensor3D> cnn_tensors;
-            std::vector<Eigen::VectorXf> dense_vectors;
-            Eigen::VectorXf softmax_output;
+            std::vector<Vector> dense_vectors;
+            Vector softmax_output;
         } full_output;
 
         full_output predictWithFullOutput(const Tensor3D &input);
-
-        Eigen::VectorXf denseLayersBackProp(const LeNet5::full_output& out, const Eigen::VectorXf &expected_output);
     };
 }
 

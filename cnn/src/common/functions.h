@@ -3,20 +3,25 @@
 
 #include "../eigen.h"
 
-float sigmoid(float x);
+float Sigmoid(float x);
 
 // from [tanh(a), tanh(b), ...] makes [tanh'(a), tanh'(b), ...]
-Eigen::VectorXf tanh_deriv(Eigen::VectorXf tanh_vector);
+Vector TanhDeriv(Vector tanh_vector);
 
-Eigen::VectorXf sigmoid_deriv(Eigen::VectorXf sigmoid_vector);
+Vector SigmoidDeriv(Vector sigmoid_vector);
 
-Eigen::VectorXf ReLU_deriv(Eigen::VectorXf relu_vector);
+Vector ReLUDeriv(Vector relu_vector);
 
 float ReLU(float x);
 
-Eigen::VectorXf cross_entropy_deriv(const Eigen::VectorXf &expected_output,
-                                    const Eigen::VectorXf &predicted_output);
+float Tanh(float x);
 
-Eigen::VectorXf mul_inverse(Eigen::VectorXf vector);
+Vector CrossEntropyDeriv(const Vector &expected_output,
+                         const Vector &predicted_output);
+
+float CrossEntropy(const Vector &expected_output,
+                   const Vector &predicted_output);
+
+Vector MulInverse(Vector vector);
 
 #endif //CNN_FUNCTIONS_H

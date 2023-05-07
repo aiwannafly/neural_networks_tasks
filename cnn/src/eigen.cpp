@@ -21,7 +21,7 @@ void PrintTensorDims(const Tensor3D &tensor) {
     std::cout << tensor.dimension(0) << "x" << tensor.dimension(1) << "x" << tensor.dimension(2) << std::endl;
 }
 
-void PrintVector(const Eigen::VectorXf &vector) {
+void PrintVector(const Vector &vector) {
     std::cout << "(";
     for (int i = 0; i < vector.size() - 1; i++) {
         std::cout << vector(i) << ", ";
@@ -29,12 +29,16 @@ void PrintVector(const Eigen::VectorXf &vector) {
     std::cout << vector(vector.size() - 1) << ")" << std::endl;
 }
 
+void PrintMatrix(const Matrix &matrix) {
+    std::cout << matrix << std::endl;
+}
 
-Eigen::VectorXf toVector(const Tensor3D &input) {
+
+Vector AsVector(const Tensor3D &input) {
     int maps = (int) input.dimension(MAPS);
     int rows = (int) input.dimension(ROWS);
     int cols = (int) input.dimension(COLS);
-    auto res = Eigen::VectorXf(maps * rows * cols);
+    auto res = Vector(maps * rows * cols);
     for (int map = 0; map < maps; map++) {
         int mapOffset = map * rows * cols;
         for (int row = 0; row < rows; row++) {
@@ -47,7 +51,7 @@ Eigen::VectorXf toVector(const Tensor3D &input) {
     return res;
 }
 
-void setTensor3DValue(Tensor3D *tensor, int x, int y, const Vector &value) {
+void SetTensor3DValue(Tensor3D *tensor, int x, int y, const Vector &value) {
     int maps = (int) tensor->dimension(0);
     assert(maps == value.size());
     for (int i = 0; i < maps; i++) {
@@ -55,7 +59,7 @@ void setTensor3DValue(Tensor3D *tensor, int x, int y, const Vector &value) {
     }
 }
 
-Vector getTensor3DValue(const Tensor3D &tensor, int x, int y) {
+Vector GetTensor3DValue(const Tensor3D &tensor, int x, int y) {
     int maps = (int) tensor.dimension(0);
     Vector values = Vector(maps);
     for (int i = 0; i < maps; i++) {
@@ -64,7 +68,7 @@ Vector getTensor3DValue(const Tensor3D &tensor, int x, int y) {
     return values;
 }
 
-void addTensorPart(Tensor3D *dest, int x0, int y0, const Tensor3D &value) {
+void AddTensorPart(Tensor3D *dest, int x0, int y0, const Tensor3D &value) {
     assert(dest->dimension(MAPS) == value.dimension(MAPS));
     for (int y = y0; y < y0 + value.dimension(ROWS); y++) {
         for (int x = x0; x < x0 + value.dimension(COLS); x++) {
@@ -75,14 +79,14 @@ void addTensorPart(Tensor3D *dest, int x0, int y0, const Tensor3D &value) {
     }
 }
 
-Vector applyReLU(Vector input) {
+Vector ApplyReLU(Vector input) {
     for (int i = 0; i < input.size(); i++) {
         input(i) = ReLU(input(i));
     }
     return input;
 }
 
-Tensor3D toTensor3D(const Eigen::VectorXf &input, int maps, int cols, int rows) {
+Tensor3D AsTensor3D(const Vector &input, int maps, int cols, int rows) {
     assert(input.size() == maps * rows * cols);
     auto res = Tensor3D(maps, rows, cols);
     for (int map = 0; map < maps; map++) {
@@ -97,12 +101,12 @@ Tensor3D toTensor3D(const Eigen::VectorXf &input, int maps, int cols, int rows) 
     return res;
 }
 
-Eigen::MatrixXf toMatrix(const Tensor4D &input) {
+Matrix AsMatrix(const Tensor4D &input) {
     int f_count = (int) input.dimension(0);
     int maps = (int) input.dimension(MAPS + 1);
     int rows = (int) input.dimension(ROWS + 1);
     int cols = (int) input.dimension(COLS + 1);
-    auto res = Eigen::MatrixXf(f_count, maps * rows * cols);
+    auto res = Matrix(f_count, maps * rows * cols);
     for (int f_curr = 0; f_curr < f_count; f_curr++) {
         for (int map = 0; map < maps; map++) {
             int mapOffset = map * rows * cols;
@@ -117,7 +121,7 @@ Eigen::MatrixXf toMatrix(const Tensor4D &input) {
     return res;
 }
 
-Tensor4D toTensor4D(const Eigen::MatrixXf &input, int f_count, int maps, int cols, int rows) {
+Tensor4D AsTensor4D(const Matrix &input, int f_count, int maps, int cols, int rows) {
     assert(input.size() == f_count * maps * rows * cols);
     auto res = Tensor4D(f_count, maps, rows, cols);
     for (int f_curr = 0; f_curr < f_count; f_curr++) {

@@ -1,7 +1,7 @@
 #include "MaxPoolingLayer.h"
 
 namespace CNN {
-    Tensor3D MaxPoolingLayer::backprop(const Tensor3D &input, const Tensor3D &deltas, float learningRate) {
+    Tensor3D MaxPoolingLayer::backprop(const Tensor3D &input, const Tensor3D &deltas, float l_rate) {
         Tensor3D new_deltas = Tensor3D(input.dimension(MAPS), input.dimension(ROWS), input.dimension(COLS));
         new_deltas.setZero();
         for (int slice = 0; slice < deltas.dimension(MAPS); slice++) {

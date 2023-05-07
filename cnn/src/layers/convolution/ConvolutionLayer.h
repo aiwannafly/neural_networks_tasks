@@ -32,10 +32,6 @@ namespace CNN {
 
         long getInputMapsCount() const;
 
-        Tensor4D *getCores();
-
-//        Eigen::VectorXf *getBiases();
-
         ~ConvolutionLayer() override;
     private:
 
@@ -47,7 +43,7 @@ namespace CNN {
         // dims of cores:  coresCount * inputMapsCount * coreSize * coreSize
         Tensor4D *filters;
         // dims of biases: coresCount
-        Eigen::VectorXf *biases;
+        Vector *biases;
     };
 }
 

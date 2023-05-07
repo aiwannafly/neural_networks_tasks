@@ -1,9 +1,11 @@
 #include "functions.h"
 
+#include <iostream>
+
 #include <cmath>
 #include <utility>
 
-float sigmoid(float x) {
+float Sigmoid(float x) {
     return 1 / (1 + (float) std::exp(-x * SIGMOID_PARAM));
 }
 
@@ -11,18 +13,22 @@ float ReLU(float x) {
     return x > 0 ? x : 0;
 }
 
-Eigen::VectorXf tanh_deriv(Eigen::VectorXf tanh_vector) {
+Vector TanhDeriv(Vector tanh_vector) {
     for (int i = 0; i < tanh_vector.size(); i++) {
-        tanh_vector(i) = (1 - tanh_vector(i)) * (1 + tanh_vector(i));
+        tanh_vector(i) = (TANH_B / TANH_A) * (TANH_A - tanh_vector(i)) * (TANH_A + tanh_vector(i));
     }
     return tanh_vector;
 }
 
-Eigen::VectorXf sigmoid_deriv(Eigen::VectorXf sigmoid_vector) {
-    return SIGMOID_PARAM * mul_inverse(std::move(sigmoid_vector));
+float Tanh(float x) {
+    return TANH_A * std::tanh(TANH_B * x);
 }
 
-Eigen::VectorXf ReLU_deriv(Eigen::VectorXf relu_vector) {
+Vector SigmoidDeriv(Vector sigmoid_vector) {
+    return SIGMOID_PARAM * MulInverse(std::move(sigmoid_vector));
+}
+
+Vector ReLUDeriv(Vector relu_vector) {
     for (int i = 0; i < relu_vector.size(); i++) {
         if (relu_vector(i) == 0) {
             relu_vector(i) = 0;
@@ -33,37 +39,47 @@ Eigen::VectorXf ReLU_deriv(Eigen::VectorXf relu_vector) {
     return relu_vector;
 }
 
-Eigen::VectorXf cross_entropy_deriv(const Eigen::VectorXf &expected_output,
-                                    const Eigen::VectorXf &predicted_output) {
-//    return -2 * (predicted_output - expected_output);
+float CrossEntropy(const Vector &expected_output,
+                    const Vector &predicted_output) {
+    assert(expected_output.size() == predicted_output.size());
+    float res = 0;
+    for (int i = 0; i < expected_output.size(); i++) {
+        res -= expected_output(i) * std::log2(predicted_output(i));
+    }
+    return res;
+}
+
+Vector CrossEntropyDeriv(const Vector &expected_output,
+                         const Vector &predicted_output) {
+//    return 2 * (predicted_output - expected_output);
     // classification, cross-entropy deriv
     assert(expected_output.size() == predicted_output.size());
     size_t size = expected_output.size();
-    Eigen::VectorXf res = Eigen::VectorXf(size);
+    Vector res = Vector(size);
     for (int i = 0; i < size; i++) {
         float expected = expected_output(i);
-        float probability = predicted_output(i);
+        float p = predicted_output(i);
         assert(expected == 0 || expected == 1);
-        assert(0 <= probability <= 1);
-        float loss_deriv = 1;
+        assert(0 <= p <= 1);
+        float loss_deriv = 1 / (float) std::log(2);
         const float epsilon = 10e-3;
         if (expected == 0) {
-            if (probability == 1) {
-                probability -= epsilon;
+            if (p == 1) {
+                p -= epsilon;
             }
-            loss_deriv /= (1 - probability);
+            loss_deriv /= (1 - p);
         } else {
-            if (probability == 0) {
-                probability += epsilon;
+            if (p == 0) {
+                p += epsilon;
             }
-            loss_deriv /= -probability;
+            loss_deriv /= -p;
         }
         res(i) = loss_deriv;
     }
     return res;
 }
 
-Eigen::VectorXf mul_inverse(Eigen::VectorXf vector) {
+Vector MulInverse(Vector vector) {
     for (int i = 0; i < vector.size(); i++) {
         vector(i) = (1 - vector(i)) * vector(i);
     }

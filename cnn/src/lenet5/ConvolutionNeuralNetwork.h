@@ -6,12 +6,12 @@
 namespace CNN {
     typedef struct {
         Tensor3D sample;
-        Eigen::VectorXf expected_output;
+        Vector expected_output;
     } Example;
 
     class ConvolutionNeuralNetwork {
     public:
-        virtual Eigen::VectorXf predict(const Tensor3D &input) = 0;
+        virtual Vector predict(const Tensor3D &input) = 0;
 
         virtual void train(const std::vector<Example> &examples) = 0;
 //

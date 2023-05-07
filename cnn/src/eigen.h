@@ -17,28 +17,34 @@
 #define COLS (2)
 #define PRINT_FORWARD (0)
 #define PRINT_BACKWARD (0)
-#define SIGMOID_PARAM (0.1)
+#define SIGMOID_PARAM (1)
+#define TANH_A (4.5)
+#define TANH_B (0.5)
 
-Eigen::VectorXf toVector(const Tensor3D &input);
+#define LOG(a) std::cout << a << std::endl
 
-Tensor3D toTensor3D(const Eigen::VectorXf &input, int maps, int cols, int rows);
+Vector AsVector(const Tensor3D &input);
 
-Eigen::MatrixXf toMatrix(const Tensor4D &input);
+Tensor3D AsTensor3D(const Vector &input, int maps, int cols, int rows);
 
-Tensor4D toTensor4D(const Eigen::MatrixXf &input, int f_count, int maps, int cols, int rows);
+Matrix AsMatrix(const Tensor4D &input);
 
-void setTensor3DValue(Tensor3D *tensor, int x, int y, const Vector &value);
+Tensor4D AsTensor4D(const Matrix &input, int f_count, int maps, int cols, int rows);
 
-Vector getTensor3DValue(const Tensor3D &tensor, int x, int y);
+void SetTensor3DValue(Tensor3D *tensor, int x, int y, const Vector &value);
 
-void addTensorPart(Tensor3D *dest, int x0, int y0, const Tensor3D &value);
+Vector GetTensor3DValue(const Tensor3D &tensor, int x, int y);
 
-Vector applyReLU(Vector input);
+void AddTensorPart(Tensor3D *dest, int x0, int y0, const Tensor3D &value);
+
+Vector ApplyReLU(Vector input);
 
 void PrintTensor3D(const Tensor3D &tensor);
 
 void PrintTensorDims(const Tensor3D &tensor);
 
-void PrintVector(const Eigen::VectorXf &vector);
+void PrintVector(const Vector &vector);
+
+void PrintMatrix(const Matrix &matrix);
 
 #endif //CNN_EIGEN_H

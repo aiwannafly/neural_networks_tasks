@@ -9,7 +9,7 @@ namespace CNN {
     public:
         explicit MaxPoolingLayer(int size) : PoolingLayer(size) {}
 
-        Tensor3D backprop(const Tensor3D &input, const Tensor3D &deltas, float learningRate) override;
+        Tensor3D backprop(const Tensor3D &input, const Tensor3D &deltas, float l_rate) override;
 
         Tensor3D forward(const Tensor3D &input) override;
 

@@ -14,18 +14,18 @@ namespace perceptron {
 
         size_t getOutputSize() const;
 
-        Eigen::MatrixXf *getWeights();
+        // returns activation(W * input + bias)
+        Vector forward(const Vector& input);
 
-        Eigen::VectorXf *getBiases();
+        Vector backprop(const Vector &input, const Vector& prev_deltas, float l_rate);
 
-        // returns sigma(W * input + bias)
-        Eigen::VectorXf apply(const Eigen::VectorXf& input);
+        static Vector act_deriv(const Vector &output);
 
     private:
-        size_t prev_layer_size;
-        size_t current_layer_size;
-        Eigen::MatrixXf *weights;
-        Eigen::VectorXf *biases;
+        size_t input_size;
+        size_t output_size;
+        Matrix *weights;
+        Vector *biases;
     };
 }
 

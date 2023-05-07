@@ -1,8 +1,9 @@
 #include "SoftmaxLayer.h"
+#include "../../common/functions.h"
 
-Eigen::VectorXf CNN::SoftmaxLayer::apply(const Eigen::VectorXf &input) {
+Vector CNN::SoftmaxLayer::forward(const Vector &input) {
     size_t size = input.size();
-    Eigen::VectorXf result = Eigen::VectorXf(size);
+    Vector result = Vector(size);
     float denominator = 0;
     for (int i = 0; i < size; i++) {
         denominator += std::exp(input(i));
@@ -11,4 +12,8 @@ Eigen::VectorXf CNN::SoftmaxLayer::apply(const Eigen::VectorXf &input) {
         result(i) = std::exp(input(i)) / denominator;
     }
     return result;
+}
+
+Vector CNN::SoftmaxLayer::deriv(const Vector& output) {
+    return MulInverse(output);
 }

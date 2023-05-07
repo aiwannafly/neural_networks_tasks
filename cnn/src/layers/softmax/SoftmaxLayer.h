@@ -7,7 +7,9 @@ namespace CNN {
     class SoftmaxLayer {
 
     public:
-        Eigen::VectorXf apply(const Eigen::VectorXf& input);
+        static Vector forward(const Vector& input);
+
+        static Vector deriv(const Vector& output);
     };
 }
 

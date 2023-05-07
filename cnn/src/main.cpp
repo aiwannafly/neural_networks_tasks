@@ -2,6 +2,7 @@
 
 #include "lenet5/LeNet5.h"
 #include "utils/csv.h"
+#include "common/functions.h"
 
 #define IMG_SIZE (28)
 
@@ -30,14 +31,14 @@ std::vector<float> MakeFloatArr(const std::vector<std::string> &strings) {
     return res;
 }
 
-Eigen::VectorXf labelToVector(int label) {
-    Eigen::VectorXf result(10);
+Vector LabelToVector(int label) {
+    Vector result(10);
     result.setZero();
     result(label) = 1;
     return result;
 }
 
-int vectorToLabel(Eigen::VectorXf vector) {
+int VectorToLabel(Vector vector) {
     float max = vector(0);
     int id = 0;
     for (int i = 1; i < 10; i++) {
@@ -68,11 +69,14 @@ std::vector<CNN::Example> ParseMNISTCSV(const std::string &file_name) {
         }
         float label = nums.at(0);
         CNN::Example example;
-        example.expected_output = labelToVector((int) label);
+        example.expected_output = LabelToVector((int) label);
         example.sample = Tensor3D(1, IMG_SIZE, IMG_SIZE);
         for (int i = 0; i < IMG_SIZE; i++) {
             for (int j = 0; j < IMG_SIZE; j++) {
-                example.sample(0, i, j) = nums.at(1 + j + i * IMG_SIZE) / 1000;
+                float numVal = nums.at(1 + j + i * IMG_SIZE) / 255;
+                numVal -= 0.5;
+                numVal /= 2;
+                example.sample(0, i, j) = numVal;
             }
         }
         examples.push_back(example);
@@ -85,88 +89,32 @@ int main(int argc, char *argv[]) {
         std::cerr << "usage: ./cnn <mnist-train.csv> <mnist-test.csv>" << std::endl;
         return -1;
     }
-    Tensor3D input = Tensor3D(2, 2, 2);
-    input(0, 0, 0) = 0.5;
-    input(0, 0, 1) = 1;
-    input(0, 1, 0) = 1;
-    input(0, 1, 1) = 0.5;
-    input(1, 0, 0) = 1;
-    input(1, 0, 1) = 0;
-    input(1, 1, 0) = 0.5;
-    input(1, 1, 1) = 0.5;
-    auto inputVector = toVector(input);
-    Tensor3D inputBack = toTensor3D(inputVector, 2, 2, 2);
+    std::vector<CNN::Example> all_examples = ParseMNISTCSV(argv[1]);
+    CNN::LeNet5 nn = CNN::LeNet5(10);
 
-    PrintVector(inputVector);
-    PrintTensor3D(inputBack);
-
-    Tensor4D weights = Tensor4D(2, 2, 2, 2);
-    weights(0, 0, 0, 0) = -1;
-    weights(0, 0, 0, 1) = 1;
-    weights(0, 0, 1, 0) = -1;
-    weights(0, 0, 1, 1) = 1;
-    weights(0, 1, 0, 0) = 2;
-    weights(0, 1, 0, 1) = -1;
-    weights(0, 1, 1, 0) = 0;
-    weights(0, 1, 1, 1) = -1;
-
-    weights(1, 0, 0, 0) = 0;
-    weights(1, 0, 0, 1) = 2;
-    weights(1, 0, 1, 0) = 1;
-    weights(1, 0, 1, 1) = 1;
-    weights(1, 1, 0, 0) = 0;
-    weights(1, 1, 0, 1) = 1;
-    weights(1, 1, 1, 0) = 0;
-    weights(1, 1, 1, 1) = 1;
-
-    Eigen::MatrixXf wMatrix = toMatrix(weights);
-    Tensor4D weightsBack = toTensor4D(wMatrix, 2, 2, 2, 2);
-    std::cout << wMatrix << std::endl;
-    std::cout << inputVector.cols() << std::endl;
-    std::cout << wMatrix.rows() << std::endl;
-    PrintVector(wMatrix * inputVector);
-
-//    std::vector<CNN::Example> all_examples = ParseMNISTCSV(argv[1]);
-//    CNN::LeNet5 nn = CNN::LeNet5(10);
 //    auto example = all_examples.at(0);
 //    PrintVector(example.expected_output);
 //    for (int i = 0; i < 100; i++) {
+//        // 14 - loss: 2.72768 with no cnn backprop
+//        // 14 - loss: 2.48222 with just 1 layer cnn backprop (w -= delta)
+//        // 14 - loss: 2.34262 with all cnn layers backprop (w -= delta)
+//        // 14 - loss: 2.34262 with all cnn layers backprop (w += delta and inverse first delta)
 //        nn.trainExample(example);
-//        PrintVector(nn.predict(example.sample));
+//        auto predicted = nn.predict(example.sample);
+//        std::cout << i << " - loss: " << CrossEntropy(example.expected_output, predicted) << std::endl;
 //    }
-//    nn.trainExample(example);
+//    PrintVector(nn.predict(example.sample));
+//    PrintVector(example.expected_output);
 
-//    PrintVector(nn.predict(all_examples.at(0).sample));
-//    PrintVector(nn.predict(all_examples.at(1).sample));
-//    PrintVector(nn.predict(all_examples.at(2).sample));
-//    int train_limit = 0;
-//    for (int i = 0; i < train_limit; i++) {
-//        std::cout << "train " << i + 1 << "/" << train_limit << std::endl;
-//        nn.train(all_examples);
-//    }
-
-//    for (const auto &e : all_examples) {
-//        std::cout << "Expected: " << std::endl;
-//        PrintVector(e.expected_output);
-//        auto p = nn.predict(e.sample);
-//        std::cout << "Predicted: " << std::endl;
-//        PrintVector(p);
-//    }
-//    Tensor3D a = Tensor3D(4, 4, 4);
-//    a.setRandom();
-////    a *= 2;
-////    a -= 1;
-//    float sum = 0;
-//    for (int i = 0; i < a.dimension(0); i++) {
-//        for (int j = 0; j < a.dimension(1); j++) {
-//            for (int k = 0; k < a.dimension(2); k++) {
-//                a(i, j, k) *= 2;
-//                a(i, j, k) -= 1;
-//                sum += a(i, j, k);
-//            }
-//        }
-//    }
-//    std::cout << sum / a.size() << std::endl;
-//    PrintTensor(a);
+    int lim = 10;
+    for (int i = 0; i < lim; i++) {
+        nn.train(all_examples);
+        std::cout << i << "/" << lim << std::endl;
+    }
+    for (const auto &example: all_examples) {
+        PrintVector(example.expected_output);
+        PrintVector(nn.predict(example.sample));
+        std::cout << std::endl;
+    }
     return 0;
 }
