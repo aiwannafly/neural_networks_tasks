@@ -5,7 +5,7 @@
 
 namespace NN {
     typedef struct {
-        Tensor3D sample;
+        Vector sample;
         Vector expected_output;
     } Example;
 
@@ -16,18 +16,41 @@ namespace NN {
         int FN = 0;
     } ClassificationScore;
 
-    typedef struct Params {
+    typedef struct LSTMParams {
     public:
-        Matrix weights;
+        Matrix hx;
+        Matrix hh;
         Vector biases;
 
-        Params(size_t input_size, size_t output_size) {
+        LSTMParams(size_t input_size, size_t output_size) {
             biases = Vector(output_size);
-            weights = Matrix(output_size, input_size);
+            hx = Matrix(output_size, input_size);
+            hh = Matrix(output_size, output_size);
             biases.setZero();
-            weights.setZero();
+            hx.setZero();
+            hh.setZero();
         }
     } Params;
+
+    typedef struct LSTMDeltas {
+    public:
+        Matrix W;
+        Matrix U;
+        Matrix biases;
+
+        LSTMDeltas(size_t input_size, size_t output_size) {
+            W = Matrix(output_size * 4, input_size);
+            U = Matrix(output_size * 4, output_size);
+            biases = Matrix(4, output_size);
+            clear();
+        }
+
+        void clear() {
+            W.setZero();
+            U.setZero();
+            biases.setZero();
+        }
+    } LSTMDeltas;
 }
 
 #endif //RNN_TYPES_H

@@ -33,6 +33,11 @@ void PrintMatrix(const Matrix &matrix) {
     std::cout << matrix << std::endl;
 }
 
+Vector Ones(size_t n) {
+    auto v = Vector(n);
+    v.setOnes();
+    return v;
+}
 
 Vector AsVector(const Tensor3D &input) {
     int maps = (int) input.dimension(MAPS);
@@ -47,6 +52,17 @@ Vector AsVector(const Tensor3D &input) {
                 res(mapOffset + rowOffset + col) = input(map, row, col);
             }
         }
+    }
+    return res;
+}
+
+Vector Concat(const Vector &a, const Vector &b) {
+    auto res = Vector(a.size() + b.size());
+    for (int i = 0; i < a.size(); i++) {
+        res(i) = a(i);
+    }
+    for (int i = 0; i < b.size(); i++) {
+        res(i + a.size()) = b(i);
     }
     return res;
 }

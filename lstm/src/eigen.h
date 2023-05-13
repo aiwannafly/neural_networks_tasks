@@ -16,10 +16,15 @@
 #define PRINT_FORWARD (0)
 #define PRINT_BACKWARD (0)
 #define SIGMOID_PARAM (1)
-#define TANH_A (4.5)
-#define TANH_B (0.5)
+#define TANH_A (1)
+#define TANH_B (1)
 
 #define LOG(a) std::cout << a << std::endl
+#define LOG_ERR(a) std::cerr << a << std::endl
+
+Vector Concat(const Vector &a, const Vector &b);
+
+Vector Ones(size_t n);
 
 Vector AsVector(const Tensor3D &input);
 

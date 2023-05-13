@@ -4,6 +4,7 @@
 #include "common/functions.h"
 #include "utils/utils.h"
 #include "common/types.h"
+#include "rnn/LSTM.h"
 
 std::vector<std::string> Split(const std::string &s, const std::string &delimiter) {
     size_t pos_start = 0, pos_end, delim_len = delimiter.length();
@@ -49,5 +50,23 @@ std::vector<NN::Example> ParseCSV(const std::string &file_name) {
 }
 
 int main(int argc, char *argv[]) {
+    auto *nn = new NN::LSTM(2, 1);
+    std::vector<NN::Example> examples;
+    auto x1 = NN::Example();
+    x1.sample = Vector(2);
+    x1.expected_output = Vector(1);
+    x1.sample(0) = 1;
+    x1.sample(1) = 2;
+    x1.expected_output(0) = 0.5;
+    examples.push_back(x1);
+    auto x2 = NN::Example();
+    x2.sample = Vector(2);
+    x2.expected_output = Vector(1);
+    x2.sample(0) = 0.5;
+    x2.sample(1) = 3;
+    x2.expected_output(0) = 1.25;
+    examples.push_back(x2);
+    nn->train(examples);
+    delete nn;
     return 0;
 }

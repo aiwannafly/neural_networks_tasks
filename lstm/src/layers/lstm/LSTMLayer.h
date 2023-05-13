@@ -5,30 +5,54 @@
 #include "../../common/types.h"
 
 namespace NN {
-    class LSTMLayer : public Layer {
+    typedef struct LSTMOutput {
+        Vector input;
+        Vector i;
+        Vector f;
+        Vector a;
+        Vector o;
+        Vector curr_h;
+        Vector prev_h;
+        Vector curr_c;
+        Vector prev_c;
+    } LSTMOutput;
+
+    class LSTMLayer {
     public:
         LSTMLayer(size_t input_size, size_t output_size);
 
-        size_t getInputSize() const override;
+        size_t getInputSize() const;
 
-        size_t getOutputSize() const override;
+        size_t getOutputSize() const;
 
-        Vector forward(const Vector &input) override;
+        Vector forward(const Vector &input);
 
-        Vector backprop(const Vector &input, const Vector& prev_deltas, float l_rate) override;
+        LSTMOutput verboseForward(const Vector &input);
 
-        ~LSTMLayer() override;
+        Vector backprop(const LSTMOutput &o, const Vector& prev_deltas);
+
+        void initBackpropSession();
+
+        void finishBackpropSession(float l_rate);
+
+        ~LSTMLayer();
 
     private:
+
         size_t input_size;
         size_t output_size;
 
-        Vector curr_hidden;
-        Vector curr_cell;
-        Params *_forget;
-        Params *_input;
-        Params *_cell;
-        Params *_output;
+        Vector curr_h;
+        Vector curr_c;
+        Vector curr_delta_h;
+        Vector curr_delta_c;
+        Vector curr_f;
+
+        LSTMDeltas *_deltas;
+        LSTMParams *_forget;
+        LSTMParams *_input;
+        LSTMParams *_activ;
+        LSTMParams *_output;
     };
 }
 
