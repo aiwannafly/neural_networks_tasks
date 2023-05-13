@@ -22,26 +22,6 @@ NN::LSTMLayer::LSTMLayer(size_t input_size, size_t output_size) {
     curr_delta_c.setZero();
     curr_f = Vector(output_size);
     curr_f.setZero();
-
-    _activ->hx(0, 0) = 0.45;
-    _activ->hx(0, 1) = 0.25;
-    _activ->hh(0, 0) = 0.15;
-    _activ->biases(0) = 0.2;
-
-    _input->hx(0, 0) = 0.95;
-    _input->hx(0, 1) = 0.8;
-    _input->hh(0, 0) = 0.8;
-    _input->biases(0) = 0.65;
-
-    _forget->hx(0, 0) = 0.7;
-    _forget->hx(0, 1) = 0.45;
-    _forget->hh(0, 0) = 0.1;
-    _forget->biases(0) = 0.15;
-
-    _output->hx(0, 0) = 0.6;
-    _output->hx(0, 1) = 0.4;
-    _output->hh(0, 0) = 0.25;
-    _output->biases(0) = 0.1;
 }
 
 NN::LSTMLayer::~LSTMLayer() {
@@ -82,7 +62,6 @@ NN::LSTMOutput NN::LSTMLayer::verboseForward(const Vector &input) {
 
 Vector NN::LSTMLayer::backprop(const NN::LSTMOutput &o, const Vector &prev_deltas) {
     size_t n = o.curr_h.size();
-    PrintVector(prev_deltas);
     Vector full_delta = prev_deltas + curr_delta_h;
     curr_delta_c = full_delta.cwiseProduct(o.o).cwiseProduct(Ones(n) - TanhV(o.curr_c).cwisePow(2)) +
                    curr_delta_c.cwiseProduct(curr_f);

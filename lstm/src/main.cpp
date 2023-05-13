@@ -44,29 +44,72 @@ std::vector<NN::Example> ParseCSV(const std::string &file_name) {
             throw std::invalid_argument("labels count != numbers in row count");
         }
         NN::Example example;
+        example.expected_output = Vector(1);
+        example.expected_output(0) = nums.at(1);
+        int sample_size = (int) nums.size() - 2;
+        example.sample = Vector(sample_size);
+        for (int i = 0; i < sample_size; i++) {
+            example.sample(i) = nums.at(i + 2);
+        }
         examples.push_back(example);
     }
     return examples;
 }
 
+float GetDataDispersion(const std::vector<NN::Example> &examples) {
+    Eigen::VectorXf avg_real = examples.at(0).expected_output;
+    avg_real.setZero();
+    for (const auto &example: examples) {
+        avg_real += example.expected_output;
+    }
+    avg_real /= (float) examples.size();
+    float real_dispersion = 0;
+    for (const auto &example: examples) {
+        real_dispersion += avg_real.dot(example.expected_output);
+    }
+    return real_dispersion;
+}
+
 int main(int argc, char *argv[]) {
-    auto *nn = new NN::LSTM(2, 1);
-    std::vector<NN::Example> examples;
-    auto x1 = NN::Example();
-    x1.sample = Vector(2);
-    x1.expected_output = Vector(1);
-    x1.sample(0) = 1;
-    x1.sample(1) = 2;
-    x1.expected_output(0) = 0.5;
-    examples.push_back(x1);
-    auto x2 = NN::Example();
-    x2.sample = Vector(2);
-    x2.expected_output = Vector(1);
-    x2.sample(0) = 0.5;
-    x2.sample(1) = 3;
-    x2.expected_output(0) = 1.25;
-    examples.push_back(x2);
-    nn->train(examples);
+    auto examples = ParseCSV("energy.csv");
+    LOG(examples.size());
+    auto training_count = (size_t) ((float) examples.size() * .8);
+    if (training_count == 0) {
+        return -1;
+    }
+    std::vector<NN::Example> training_examples;
+    std::vector<NN::Example> test_examples;
+    for (int i = 0; i < examples.size(); i++) {
+        if (i < training_count) {
+            training_examples.push_back(examples.at(i));
+        } else {
+            test_examples.push_back(examples.at(i));
+        }
+    }
+    float realDispersion = GetDataDispersion(test_examples);
+    FILE *metrics_output = fopen("metrics", "w");
+    if (metrics_output == nullptr) {
+        LOG_ERR("could not open metrics file");
+        return -1;
+    }
+    fprintf(metrics_output, "MSE, MAE, RSCORE: ");
+    auto *nn = new NN::LSTM(examples.front().sample.size(), 1);
+
+    for (int i = 0; i < 500; i++) {
+        nn->train(training_examples);
+        auto scores = nn->getScore(test_examples, realDispersion);
+        LOG("Epoch " << i + 1 << " passed, " << "MSE: " << scores.MSE);
+        fprintf(metrics_output, "%f %f %f ", scores.MSE, scores.MAE, scores.RScore);
+    }
+
+    fprintf(metrics_output, "\nPREDICTED, EXPECTED: ");
+    for (const auto &example: test_examples) {
+        Eigen::VectorXf predicted = nn->forward(example.sample);
+        for (int i = 0; i < predicted.size(); i++) {
+            fprintf(metrics_output, "%f %f ", predicted(i), example.expected_output(i));
+        }
+    }
+    fclose(metrics_output);
     delete nn;
     return 0;
 }

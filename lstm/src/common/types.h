@@ -9,6 +9,12 @@ namespace NN {
         Vector expected_output;
     } Example;
 
+    typedef struct RegressionScore {
+        float MSE;
+        float MAE;
+        float RScore;
+    } RegressionScore;
+
     typedef struct ClassificationScore {
         int TP = 0;
         int FP = 0;
@@ -26,9 +32,9 @@ namespace NN {
             biases = Vector(output_size);
             hx = Matrix(output_size, input_size);
             hh = Matrix(output_size, output_size);
-            biases.setZero();
-            hx.setZero();
-            hh.setZero();
+            biases.setRandom();
+            hx.setRandom();
+            hh.setRandom();
         }
     } Params;
 

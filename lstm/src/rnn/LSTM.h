@@ -8,7 +8,7 @@
 namespace NN {
     class LSTM {
     public:
-        LSTM(int input_size, int output_size);
+        LSTM(size_t input_size, size_t output_size);
 
         ~LSTM();
 
@@ -16,11 +16,13 @@ namespace NN {
 
         void train(const std::vector<Example> &examples);
 
+        RegressionScore getScore(const std::vector<NN::Example> &examples, float realDispersion);
+
     private:
         LSTMLayer *lstmLayer;
 
-        int input_size;
-        int output_size;
+        size_t input_size;
+        size_t output_size;
         float l_rate = 0.1;
     };
 }
