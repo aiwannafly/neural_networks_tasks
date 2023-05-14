@@ -1,7 +1,3 @@
-//
-// Created by ms_dr on 20.04.2023.
-//
-
 #ifndef CNN_CONVOLUTIONLAYER_H
 #define CNN_CONVOLUTIONLAYER_H
 

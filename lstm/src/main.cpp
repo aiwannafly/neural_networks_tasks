@@ -38,6 +38,7 @@ std::vector<NN::Example> ParseCSV(const std::string &file_name) {
     std::vector<std::string> cols = Split(col_names_raw, delimiter);
     std::vector<NN::Example> examples;
     char *s;
+    int sample_offset = 2;
     while ((s = in.next_line()) != nullptr) {
         std::vector<float> nums = MakeFloatArr(Split(s, delimiter));
         if (nums.size() != cols.size()) {
@@ -46,10 +47,10 @@ std::vector<NN::Example> ParseCSV(const std::string &file_name) {
         NN::Example example;
         example.expected_output = Vector(1);
         example.expected_output(0) = nums.at(1);
-        int sample_size = (int) nums.size() - 2;
+        int sample_size = (int) nums.size() - sample_offset;
         example.sample = Vector(sample_size);
         for (int i = 0; i < sample_size; i++) {
-            example.sample(i) = nums.at(i + 2);
+            example.sample(i) = nums.at(i + sample_offset);
         }
         examples.push_back(example);
     }
@@ -95,7 +96,8 @@ int main(int argc, char *argv[]) {
     fprintf(metrics_output, "MSE, MAE, RSCORE: ");
     auto *nn = new NN::LSTM(examples.front().sample.size(), 1);
 
-    for (int i = 0; i < 500; i++) {
+    int epoch_cnt = 500;
+    for (int i = 0; i < epoch_cnt; i++) {
         nn->train(training_examples);
         auto scores = nn->getScore(test_examples, realDispersion);
         LOG("Epoch " << i + 1 << " passed, " << "MSE: " << scores.MSE);

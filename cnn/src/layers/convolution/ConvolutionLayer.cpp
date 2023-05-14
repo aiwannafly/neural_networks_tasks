@@ -16,8 +16,6 @@ namespace CNN {
                 for (int k = 0; k < f_size; k++) {
                     for (int t = 0; t < f_size; t++) {
                         (*filters)(i, j, k, t) -= 0.5;
-//                        (*filters)(i, j, k, t) *= 2;
-                        //(*filters)(i, j, k, t) -= 1;
                     }
                 }
             }
@@ -56,7 +54,7 @@ namespace CNN {
             while (x + f_size <= input.dimension(COLS)) {
                 offset[COLS] = x;
                 Vector inputVector = AsVector(input.slice(offset, extent).reshape(extent));
-                Vector outputVector = ApplyReLU(weights * inputVector + (*biases));
+                Vector outputVector = ReLUV(weights * inputVector + (*biases));
                 SetTensor3DValue(&output, x, y, outputVector);
                 x++;
             }
@@ -72,12 +70,6 @@ namespace CNN {
         Matrix weights = AsMatrix(*filters);
         int y = 0;
         int input_slice_size = input_maps * f_size * f_size;
-
-//        LOG("\nWeights before:");
-//        PrintMatrix(weights);
-
-//        LOG("\nPrev deltas:");
-//        PrintTensor3D(output_deltas);
 
         while (y + f_size <= input.dimension(ROWS)) {
             offset[ROWS] = y;
@@ -104,18 +96,12 @@ namespace CNN {
                         float err = common_err * input_slice(k);
                         weights(j, k) += err;
                     }
-//                    (*biases)(j) += common_err;
+                    //(*biases)(j) += common_err;
                 }
                 x++;
             }
             y++;
         }
-//        LOG("\nWeights after:");
-//        PrintMatrix(weights);
-
-//        LOG("Next deltas:");
-//        PrintTensor3D(nextDeltas);
-
         *filters = AsTensor4D(weights, f_cnt, input_maps, f_size, f_size);
         return nextDeltas;
     }

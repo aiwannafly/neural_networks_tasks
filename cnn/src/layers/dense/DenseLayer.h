@@ -3,7 +3,7 @@
 
 #include "../../eigen.h"
 
-namespace perceptron {
+namespace NN {
     class DenseLayer {
     public:
         DenseLayer(size_t prev_layer_size, size_t current_layer_size);

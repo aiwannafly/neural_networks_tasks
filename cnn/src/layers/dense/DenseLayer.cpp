@@ -5,7 +5,7 @@
 
 #include "../../common/functions.h"
 
-namespace perceptron {
+namespace NN {
 
     DenseLayer::DenseLayer(size_t prev_layer_size, size_t current_layer_size) {
         this->output_size = current_layer_size;
@@ -57,7 +57,7 @@ namespace perceptron {
             for (int i = 0; i < input_size; i++) {
                 (*weights)(j, i) += common_err * input(i);
             }
-//            (*biases)(j) += common_err;
+            //(*biases)(j) += common_err;
         }
         return next_deltas;
     }

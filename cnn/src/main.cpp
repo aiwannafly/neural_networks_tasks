@@ -2,7 +2,6 @@
 
 #include "lenet5/LeNet5.h"
 #include "utils/csv.h"
-#include "common/functions.h"
 
 #define IMG_SIZE (28)
 
@@ -86,31 +85,65 @@ struct ClassificationScore {
     int FN = 0;
 };
 
+ClassificationScore
+GetScore(const std::vector<int> &expected_labels, const std::vector<Vector> &predicted_outputs, int label,
+         float threshold) {
+    assert(expected_labels.size() == predicted_outputs.size());
+    auto res = ClassificationScore();
+    for (int i = 0; i < expected_labels.size(); i++) {
+        float p = predicted_outputs.at(i)(label);
+        bool expected = expected_labels.at(i) == label;
+        bool predicted = p >= threshold;
+        if (expected) {
+            if (predicted) {
+                res.TP++;
+            } else {
+                res.FN++;
+            }
+        } else {
+            if (predicted) {
+                res.FP++;
+            } else {
+                res.TN++;
+            }
+        }
+    }
+    return res;
+}
+
 int main(int argc, char *argv[]) {
     if (argc != 1 + 1 + 1) {
         std::cerr << "usage: ./cnn <mnist-train.csv> <mnist-test.csv>" << std::endl;
         return -1;
     }
-    int classes_count = 10;
+    int classes_cnt = 10;
     std::vector<CNN::Example> train_examples = ParseMNISTCSV(argv[1]);
     std::vector<CNN::Example> test_examples = ParseMNISTCSV(argv[2]);
-    CNN::LeNet5 nn = CNN::LeNet5(classes_count);
+    CNN::LeNet5 nn = CNN::LeNet5(classes_cnt);
 
     auto start = std::chrono::steady_clock::now();
-    int lim = 5;
-    nn.setLearningRate(1 / ((float) lim * (float) train_examples.size()));
+    int epochs_cnt = 5;
+    nn.setLearningRate(1 / ((float) epochs_cnt * (float) train_examples.size()));
 
-    for (int i = 0; i < lim; i++) {
+    std::vector<int> test_expected_labels;
+    std::vector<Vector> test_predicted_outputs;
+
+    for (int i = 0; i < epochs_cnt; i++) {
         nn.train(train_examples);
-        LOG("Epoch " << i + 1 << " / " << lim << " passed");
+        LOG("Epoch " << i + 1 << " / " << epochs_cnt << " passed");
 
         int guessed = 0;
-        auto* scores = new ClassificationScore[classes_count];
+        auto *scores = new ClassificationScore[classes_cnt];
 
+        test_predicted_outputs.clear();
         for (const auto &example: test_examples) {
             int expected = VectorToLabel(example.expected_output);
+            if (test_expected_labels.size() < test_examples.size()) {
+                test_expected_labels.push_back(expected);
+            }
             auto p = nn.predict(example.sample);
             int predicted = VectorToLabel(p);
+            test_predicted_outputs.push_back(p);
             if (expected == predicted) {
                 guessed++;
                 scores[expected].TP++;
@@ -118,14 +151,14 @@ int main(int argc, char *argv[]) {
                 scores[predicted].FP++;
                 scores[expected].FN++;
             }
-            for (int c = 0; c < classes_count; c++) {
+            for (int c = 0; c < classes_cnt; c++) {
                 if (c == expected || c == predicted) {
                     continue;
                 }
                 scores[c].TN++;
             }
         }
-        for (int c = 0; c < classes_count; c++) {
+        for (int c = 0; c < classes_cnt; c++) {
             LOG("c = " << c);
             LOG("TP = " << scores[c].TP);
             LOG("FP = " << scores[c].FP);
@@ -136,8 +169,22 @@ int main(int argc, char *argv[]) {
         delete[] scores;
     }
     auto end = std::chrono::steady_clock::now();
-    std::chrono::duration<double> elapsed_seconds = end-start;
+    std::chrono::duration<double> elapsed_seconds = end - start;
     LOG("train duration: " << elapsed_seconds.count());
 
+    float step = 0.01;
+    // collect data for recall curve
+    for (int c = 0; c < classes_cnt; c++) {
+        float threshold = 0;
+        LOG(c);
+        while (threshold <= 1) {
+            auto scores = GetScore(test_expected_labels, test_predicted_outputs, c, threshold);
+            float fpr = (float) scores.FP / (float) (scores.FP + scores.TN);
+            float tpr = (float) scores.TP / (float) (scores.TP + scores.FN);
+            std::cout << fpr << " " << tpr << " ";
+            threshold += step;
+        }
+        LOG("");
+    }
     return 0;
 }

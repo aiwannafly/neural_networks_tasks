@@ -16,11 +16,8 @@ namespace CNN {
         cnn_layers.push_back(new MaxPoolingLayer(POOLING_SIZE));
         cnn_layers.push_back(new ConvolutionLayer(SECOND_CONV_CORE_SIZE, 12, 4));
         cnn_layers.push_back(new MaxPoolingLayer(POOLING_SIZE));
-        cnn_layers.push_back(new ConvolutionLayer(THIRD_CONV_CORE_SIZE, 26, 12));
-        dense_layers.push_back(new perceptron::DenseLayer(LAST_CONV_LAYER_SIZE, output_size));
-//        dense_layers.push_back(new perceptron::DenseLayer(LAST_CONV_LAYER_SIZE, 16));
-//        dense_layers.push_back(new perceptron::DenseLayer(16, 12));
-//        dense_layers.push_back(new perceptron::DenseLayer(12, output_size));
+        cnn_layers.push_back(new ConvolutionLayer(THIRD_CONV_CORE_SIZE, LAST_CONV_LAYER_SIZE, 12));
+        dense_layers.push_back(new NN::DenseLayer(LAST_CONV_LAYER_SIZE, output_size));
         softmax_layer = new SoftmaxLayer();
     }
 
@@ -40,15 +37,11 @@ namespace CNN {
 
     void LeNet5::train(const std::vector<Example> &examples) {
         std::vector<Matrix> weightsDeltas;
-
         int count = 0;
         int total = (int) examples.size();
         for (const auto &e: examples) {
             trainExample(e);
             count++;
-            if (count % 1000 == 0) {
-                LOG("trained " << count << "/" << total);
-            }
         }
     }
 
@@ -58,27 +51,17 @@ namespace CNN {
 
         // score initial deltas
         Vector loss_deriv = CrossEntropyDeriv(example.expected_output, out.softmax_output);
-//        LOG("dense output:");
-//        PrintVector(out.dense_vectors.back());
-//        LOG("loss_deriv:");
-//        PrintVector(loss_deriv);
         Vector softmax_deriv = SoftmaxLayer::deriv(out.softmax_output);
-//        LOG("softmax_deriv:");
-//        PrintVector(softmax_deriv);
-        Vector act_deriv = perceptron::DenseLayer::act_deriv(out.dense_vectors.back());
-//        LOG("act_deriv:");
-//        PrintVector(act_deriv);
+        Vector act_deriv = NN::DenseLayer::act_deriv(out.dense_vectors.back());
         Vector curr_dense_deltas = Vector(out.dense_vectors.back().size());
         for (int j = 0; j < out.dense_vectors.back().size(); j++) {
             curr_dense_deltas(j) = -loss_deriv(j) * softmax_deriv(j) * act_deriv(j);
         }
-
         // back propagation in dense layers
         for (int i = (int) dense_layers.size() - 1; i >= 0; i--) {
             auto layer_input = out.dense_vectors.at(i);
             curr_dense_deltas = dense_layers.at(i)->backprop(layer_input, curr_dense_deltas, l_rate);
         }
-        //return;
         // back propagation in cnn layers
         Tensor3D curr_cnn_deltas(curr_dense_deltas.size(), 1, 1);
         for (int i = 0; i < curr_dense_deltas.size(); i++) {

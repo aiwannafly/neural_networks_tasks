@@ -37,7 +37,7 @@ Vector GetTensor3DValue(const Tensor3D &tensor, int x, int y);
 
 void AddTensorPart(Tensor3D *dest, int x0, int y0, const Tensor3D &value);
 
-Vector ApplyReLU(Vector input);
+Vector ReLUV(Vector input);
 
 void PrintTensor3D(const Tensor3D &tensor);
 

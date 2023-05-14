@@ -30,7 +30,7 @@ namespace CNN {
 
         size_t output_size;
         std::vector<CNNLayer *> cnn_layers;
-        std::vector<perceptron::DenseLayer *> dense_layers;
+        std::vector<NN::DenseLayer *> dense_layers;
         SoftmaxLayer *softmax_layer;
         float l_rate = 0.001;
 

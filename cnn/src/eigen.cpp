@@ -79,7 +79,7 @@ void AddTensorPart(Tensor3D *dest, int x0, int y0, const Tensor3D &value) {
     }
 }
 
-Vector ApplyReLU(Vector input) {
+Vector ReLUV(Vector input) {
     for (int i = 0; i < input.size(); i++) {
         input(i) = ReLU(input(i));
     }
